@@ -236,7 +236,8 @@ scripts:
     async def test_empty_workspace_with_script(self, temp_dir: Path) -> None:
         """Should return empty result for workspace with no packages."""
         pymelos_yaml = temp_dir / "pymelos.yaml"
-        pymelos_yaml.write_text("name: empty\npackages:\n  - packages/*\nscripts:\n  test:\n    run: echo hi\n")
+        config = "name: empty\npackages:\n  - packages/*\nscripts:\n  test:\n    run: echo hi\n"
+        pymelos_yaml.write_text(config)
         (temp_dir / "packages").mkdir()
 
         workspace = Workspace.discover(temp_dir)

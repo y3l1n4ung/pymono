@@ -55,7 +55,7 @@ class TestCleanCommand:
 
         assert (pkg_a / ".pytest_cache").exists()
 
-        result = await clean(workspace)
+        await clean(workspace)
 
         assert not (pkg_a / ".pytest_cache").exists()
 
@@ -119,7 +119,7 @@ class TestCleanCommand:
         (custom / "output.txt").write_text("build output")
 
         workspace = Workspace.discover(workspace_dir)
-        result = await clean(workspace, patterns=["custom_build"])
+        await clean(workspace, patterns=["custom_build"])
 
         assert not custom.exists()
 
@@ -202,7 +202,7 @@ class TestCleanEdgeCases:
         (nested / "deep.pyc").write_bytes(b"fake")
 
         workspace = Workspace.discover(workspace_dir)
-        result = await clean(workspace, patterns=["**/__pycache__"])
+        await clean(workspace, patterns=["**/__pycache__"])
 
         assert not nested.exists()
 
@@ -213,7 +213,7 @@ class TestCleanEdgeCases:
         (pkg_a / "dist").mkdir()
 
         workspace = Workspace.discover(workspace_dir)
-        result = await clean(workspace, patterns=["__pycache__", "dist"])
+        await clean(workspace, patterns=["__pycache__", "dist"])
 
         assert not (pkg_a / "__pycache__").exists()
         assert not (pkg_a / "dist").exists()

@@ -345,8 +345,10 @@ members = ["packages/*"]
         assert result.returncode == 0
 
         # Only alpha should be bumped
-        alpha_content = (multi_package_workspace / "packages" / "alpha" / "pyproject.toml").read_text()
-        beta_content = (multi_package_workspace / "packages" / "beta" / "pyproject.toml").read_text()
+        alpha_toml = multi_package_workspace / "packages" / "alpha" / "pyproject.toml"
+        beta_toml = multi_package_workspace / "packages" / "beta" / "pyproject.toml"
+        alpha_content = alpha_toml.read_text()
+        beta_content = beta_toml.read_text()
 
         assert 'version = "0.1.1"' in alpha_content
         assert 'version = "0.1.0"' in beta_content
@@ -396,7 +398,7 @@ class TestReleaseToTestPyPI:
         run_git(["config", "user.email", "test@test.com"], tmp_path)
         run_git(["config", "user.name", "Test"], tmp_path)
 
-        (tmp_path / "pymelos.yaml").write_text(f"""name: testpypi-test
+        (tmp_path / "pymelos.yaml").write_text("""name: testpypi-test
 packages:
   - packages/*
 
@@ -455,8 +457,8 @@ members = ["packages/*"]
         time.sleep(2)
 
         # Try to get package info
-        import urllib.request
         import urllib.error
+        import urllib.request
 
         try:
             url = f"https://test.pypi.org/pypi/{pkg_name}/json"
@@ -472,11 +474,10 @@ members = ["packages/*"]
         pkg = unique_package_workspace / "packages" / "test-pkg"
 
         # Make a change
-        (pkg / "src" / (unique_package_workspace / ".pkg_name").read_text().replace("-", "_") / "new.py").parent.mkdir(parents=True, exist_ok=True)
         pkg_name = (unique_package_workspace / ".pkg_name").read_text()
         src_dir = pkg / "src" / pkg_name.replace("-", "_")
         src_dir.mkdir(parents=True, exist_ok=True)
-        (src_dir / "__init__.py").write_text(f'__version__ = "0.0.1"\n')
+        (src_dir / "__init__.py").write_text('__version__ = "0.0.1"\n')
         (src_dir / "feature.py").write_text("def new_feature(): pass\n")
 
         run_git(["add", "."], unique_package_workspace)

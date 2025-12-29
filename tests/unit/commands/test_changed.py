@@ -7,9 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from pymelos.commands.base import CommandContext
 from pymelos.commands.changed import (
-    ChangedCommand,
     ChangedOptions,
     get_changed_packages,
 )

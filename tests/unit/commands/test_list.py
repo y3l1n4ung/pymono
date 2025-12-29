@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from pymelos.commands.base import CommandContext
 from pymelos.commands.list import (
     ListCommand,
