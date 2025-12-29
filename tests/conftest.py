@@ -8,6 +8,10 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from dotenv import load_dotenv
+
+# Load .env from project root (doesn't override existing env vars)
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 @pytest.fixture
