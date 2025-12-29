@@ -14,14 +14,24 @@ for version in "${VERSIONS[@]}"; do
     echo ""
     echo "=== Python $version ==="
 
-    # Sync dependencies for this version
-    if ! uv sync --python "$version" --all-extras --quiet 2>/dev/null; then
-        echo "⚠️  Syncing Python $version..."
-        uv sync --python "$version" --all-extras
-    fi
+    # Use isolated venv to avoid conflicts with .venv (VSCode)
+    env_name=".venv_py${version//./}"
 
-    # Run tests
-    if uv run --python "$version" pytest -q; then
+    UV_PROJECT_ENVIRONMENT="$env_name" uv sync --python "$version" --all-extras --quiet 2>/dev/null || \
+    UV_PROJECT_ENVIRONMENT="$env_name" uv sync --python "$version" --all-extras
+
+    # Linting
+    echo "  Linting..."
+    UV_PROJECT_ENVIRONMENT="$env_name" uv run ruff check src/ tests/
+    UV_PROJECT_ENVIRONMENT="$env_name" uv run ruff format --check src/ tests/
+
+    # Type checking
+    echo "  Type checking..."
+    UV_PROJECT_ENVIRONMENT="$env_name" uv run ty check src/
+
+    # Tests
+    echo "  Running tests..."
+    if UV_PROJECT_ENVIRONMENT="$env_name" uv run pytest -q; then
         echo "✅ Python $version passed"
     else
         echo "❌ Python $version failed"
