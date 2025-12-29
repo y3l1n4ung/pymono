@@ -174,9 +174,7 @@ version = "1.0.0"
         errors = cmd.validate()
         assert len(errors) == 0
 
-    def test_get_packages_uses_script_scope(
-        self, workspace_with_scripts: Workspace
-    ) -> None:
+    def test_get_packages_uses_script_scope(self, workspace_with_scripts: Workspace) -> None:
         """Should use script's scope when getting packages."""
         context = CommandContext(workspace=workspace_with_scripts)
         options = RunOptions(script_name="custom")  # has scope "pkg-a"

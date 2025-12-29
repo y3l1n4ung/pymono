@@ -177,26 +177,20 @@ class TestReleaseCommand:
 
         assert cmd.is_dry_run is True
 
-    async def test_dry_run_does_not_modify(
-        self, git_workspace_with_changes: Path
-    ) -> None:
+    async def test_dry_run_does_not_modify(self, git_workspace_with_changes: Path) -> None:
         """Should not modify files in dry run mode."""
         workspace = Workspace.discover(git_workspace_with_changes)
         pkg_a = git_workspace_with_changes / "packages" / "pkg-a"
         original_version = (pkg_a / "pyproject.toml").read_text()
 
-        result = await release(
-            workspace, scope="pkg-a", bump=BumpType.MINOR, dry_run=True
-        )
+        result = await release(workspace, scope="pkg-a", bump=BumpType.MINOR, dry_run=True)
 
         # Version should not change
         assert (pkg_a / "pyproject.toml").read_text() == original_version
         # Should still report what would be released
         assert result.success is True
 
-    async def test_release_with_bump_override(
-        self, git_workspace_with_changes: Path
-    ) -> None:
+    async def test_release_with_bump_override(self, git_workspace_with_changes: Path) -> None:
         """Should use bump override instead of auto-detection."""
         workspace = Workspace.discover(git_workspace_with_changes)
 
@@ -211,9 +205,7 @@ class TestReleaseCommand:
             assert result.releases[0].bump_type == BumpType.MAJOR
             assert result.releases[0].new_version == "2.0.0"
 
-    async def test_release_with_prerelease(
-        self, git_workspace_with_changes: Path
-    ) -> None:
+    async def test_release_with_prerelease(self, git_workspace_with_changes: Path) -> None:
         """Should create prerelease version."""
         workspace = Workspace.discover(git_workspace_with_changes)
 
@@ -307,9 +299,7 @@ class TestReleaseCommandClass:
         # No commits after initial, no scope, should skip
         assert result is None
 
-    def test_prepare_package_release_with_bump_override(
-        self, git_workspace: Path
-    ) -> None:
+    def test_prepare_package_release_with_bump_override(self, git_workspace: Path) -> None:
         """Should prepare release when bump is overridden."""
         # Add a change
         pkg_a = git_workspace / "packages" / "pkg-a"
@@ -368,9 +358,7 @@ class TestReleaseEdgeCases:
         pkg_a = git_workspace / "packages" / "pkg-a"
         (pkg_a / "breaking.py").write_text("# breaking change")
         os.system(f"cd {git_workspace} && git add -A")
-        os.system(
-            f"cd {git_workspace} && git commit -q -m 'feat!: breaking API change'"
-        )
+        os.system(f"cd {git_workspace} && git commit -q -m 'feat!: breaking API change'")
 
         workspace = Workspace.discover(git_workspace)
         result = await release(workspace, scope="pkg-a", dry_run=True)

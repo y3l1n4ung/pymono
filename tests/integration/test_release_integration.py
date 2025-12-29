@@ -454,6 +454,7 @@ members = ["packages/*"]
 
         # Verify package exists on TestPyPI (give it a moment to index)
         import time
+
         time.sleep(2)
 
         # Try to get package info

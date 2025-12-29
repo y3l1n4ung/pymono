@@ -47,9 +47,7 @@ class TestChangedCommand:
         assert "pkg-a" in names
         assert "pkg-b" in names
 
-    def test_excludes_dependents_when_disabled(
-        self, git_workspace_with_changes: Path
-    ) -> None:
+    def test_excludes_dependents_when_disabled(self, git_workspace_with_changes: Path) -> None:
         """Should not include dependents when disabled."""
         workspace = Workspace.discover(git_workspace_with_changes)
         result = get_changed_packages(workspace, "HEAD~1", include_dependents=False)
@@ -76,9 +74,7 @@ class TestChangedCommand:
     def test_scope_filter(self, git_workspace_with_changes: Path) -> None:
         """Should filter results by scope."""
         workspace = Workspace.discover(git_workspace_with_changes)
-        result = get_changed_packages(
-            workspace, "HEAD~1", include_dependents=True, scope="pkg-a"
-        )
+        result = get_changed_packages(workspace, "HEAD~1", include_dependents=True, scope="pkg-a")
 
         names = [p.name for p in result.changed]
         assert "pkg-a" in names

@@ -277,9 +277,7 @@ class TestBootstrapEdgeCases:
         assert result.success is True
 
     @patch("pymelos.commands.bootstrap.sync")
-    async def test_multiple_sync_errors(
-        self, mock_sync: AsyncMock, temp_dir: Path
-    ) -> None:
+    async def test_multiple_sync_errors(self, mock_sync: AsyncMock, temp_dir: Path) -> None:
         """Should fail if both locked and unlocked sync fail."""
         pymelos_yaml = temp_dir / "pymelos.yaml"
         pymelos_yaml.write_text("name: test\npackages:\n  - packages/*\n")
@@ -298,9 +296,7 @@ class TestBootstrapEdgeCases:
         assert result.success is False
 
     @patch("pymelos.commands.bootstrap.sync")
-    async def test_verbose_output_captured(
-        self, mock_sync: AsyncMock, temp_dir: Path
-    ) -> None:
+    async def test_verbose_output_captured(self, mock_sync: AsyncMock, temp_dir: Path) -> None:
         """Should capture uv output."""
         pymelos_yaml = temp_dir / "pymelos.yaml"
         pymelos_yaml.write_text("name: test\npackages:\n  - packages/*\n")
