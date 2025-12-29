@@ -63,6 +63,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag is newer than latest
+        run: |
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          LATEST_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "v0.0.0")
+          echo "Current: $CURRENT_TAG, Latest: $LATEST_TAG"
+          if [ "$(printf '%s\n' "$LATEST_TAG" "$CURRENT_TAG" | sort -V | tail -n1)" != "$CURRENT_TAG" ]; then
+            echo "Error: Tag $CURRENT_TAG is not newer than $LATEST_TAG"
+            exit 1
+          fi
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
