@@ -1,0 +1,56 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please describe your idea below.
+
+        **Tip:** For early-stage ideas, consider starting a [Discussion](https://github.com/y3l1n4ung/pymelos/discussions/categories/ideas) first.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What problem are you trying to solve? What's your use case?
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution you'd like
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any alternative solutions or features you've considered?
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Affected area
+      description: Which part of pymelos is this related to?
+      options:
+        - CLI commands
+        - Configuration (pymelos.yaml)
+        - Workspace/package discovery
+        - Script execution
+        - Release/versioning
+        - Git integration
+        - Bootstrap/dependencies
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Any other context, screenshots, or examples

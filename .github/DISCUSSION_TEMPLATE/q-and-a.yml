@@ -1,0 +1,35 @@
+title: "[Q&A] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Ask a question about pymelos
+
+        Before asking, please check:
+        - [Documentation](https://github.com/y3l1n4ung/pymelos#readme)
+        - [Existing discussions](https://github.com/y3l1n4ung/pymelos/discussions)
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What would you like to know?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: |
+        Provide any relevant context:
+        - What are you trying to achieve?
+        - What have you tried?
+        - Share your pymelos.yaml if relevant
+
+  - type: input
+    id: version
+    attributes:
+      label: pymelos version (optional)
+      placeholder: "0.1.2"
