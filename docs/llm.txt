@@ -1,0 +1,41 @@
+# pymelos
+
+Python implementation of Melos - a monorepo management tool.
+
+## What it does
+- Manages multiple Python packages in a single repository
+- Runs commands across packages with filtering
+- Handles versioning and releases
+- Bootstraps dependencies with uv
+
+## Structure
+src/pymelos/
+  cli/        - Typer CLI commands
+  commands/   - Command implementations
+  config/     - Pydantic config models
+  workspace/  - Package discovery
+  versioning/ - Semantic versioning
+  git/        - Git integration
+
+## Key files
+- pymelos.yaml      - Workspace configuration
+- pyproject.toml    - Project metadata
+- src/pymelos/      - Main source code
+- tests/            - Unit and integration tests
+
+## Commands
+pymelos list       - List packages
+pymelos run        - Run scripts
+pymelos exec       - Execute shell commands
+pymelos bootstrap  - Install dependencies
+pymelos clean      - Remove build artifacts
+pymelos version    - Bump versions
+pymelos release    - Publish packages
+
+## Tech stack
+- Python 3.10+
+- uv (package manager)
+- Typer (CLI)
+- Pydantic (config)
+- pytest (testing)
+- ty (Type Checking)
