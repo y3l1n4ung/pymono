@@ -1,7 +1,9 @@
-## Unreleased
+## v0.1.3 (2026-01-17)
 
 ### Fix
 
+- **bootstrap**: resolve command execution bug
+- **scripts**: use isolated venvs for multi-version testing
 - **scripts**: use UV_PUBLISH_TOKEN for PyPI publish
 
 ## v0.1.2 (2025-12-29)
