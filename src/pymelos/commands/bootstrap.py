@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pymelos.commands.base import Command, CommandContext
+from pymelos.commands.base import Command, CommandContext, pip_install_editable
 from pymelos.execution import ExecutionResult
 from pymelos.uv import sync
 from pymelos.workspace.workspace import Workspace
@@ -35,6 +35,7 @@ class BootstrapOptions:
     frozen: bool = False
     locked: bool = True
     skip_hooks: bool = False
+    editable: bool = True
 
 
 class BootstrapCommand(Command[BootstrapResult]):
@@ -71,6 +72,8 @@ class BootstrapCommand(Command[BootstrapResult]):
             self.workspace.root,
             frozen=self.options.frozen,
             locked=use_locked,
+            dev=True,
+            all_packages=True,
         )
 
         # If --locked failed due to outdated lockfile, retry without --locked
@@ -88,6 +91,10 @@ class BootstrapCommand(Command[BootstrapResult]):
                 hook_results=[],
                 uv_output=stderr or stdout,
             )
+        # Install workspace packages (editable)
+        if self.options.editable and self.workspace.packages:
+            package_paths = [pkg.path for pkg in self.workspace.packages.values()]
+            pip_install_editable(package_paths)
 
         # Run bootstrap hooks
         if not self.options.skip_hooks:

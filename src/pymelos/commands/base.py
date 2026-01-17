@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
+from subprocess import run
 from typing import Generic, TypeVar
 
 from pymelos.workspace import Workspace
@@ -89,3 +92,17 @@ class SyncCommand(ABC, Generic[TResult]):
             List of validation errors (empty if valid).
         """
         return []
+
+
+def pip_install_editable(paths: Path | Sequence[Path | str]) -> None:
+    """
+    Install one or more workspace packages in editable mode.
+    """
+    if isinstance(paths, Path | str):
+        paths = [paths]  # wrap single path into list
+
+    # Convert all to strings
+    paths_str = [str(p) for p in paths]
+
+    # Run uv pip install -e for all packages
+    run(["uv", "pip", "install", "-e", *paths_str], check=True)

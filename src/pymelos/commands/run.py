@@ -112,7 +112,11 @@ class RunCommand(Command[BatchResult]):
             return await executor.execute_batches(batches, script.run, env=env)
         else:
             # Execute all in parallel
-            return await executor.execute(packages, script.run, env=env)
+            return await executor.execute(
+                packages,
+                script.run,
+                env=env,
+            )
 
 
 async def run_script(

@@ -1,4 +1,4 @@
-"""Command execution engine."""
+"""Command execution engine with standard asynchronous capture."""
 
 from __future__ import annotations
 
@@ -42,18 +42,19 @@ async def run_command(
     try:
         process = await asyncio.create_subprocess_shell(
             command,
-            cwd=cwd,
+            cwd=str(cwd),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             env=run_env,
         )
 
         try:
+            # Use communicate to wait for the process and capture all output at once
             stdout_bytes, stderr_bytes = await asyncio.wait_for(
                 process.communicate(),
                 timeout=timeout,
             )
-        except TimeoutError:
+        except (asyncio.TimeoutError, TimeoutError):
             process.kill()
             await process.wait()
             duration_ms = int((time.monotonic() - start_time) * 1000)
@@ -89,6 +90,7 @@ async def run_in_package(
     Returns:
         Execution result.
     """
+    print(package.name, command)
     # Build environment with package-specific variables
     run_env = env.copy() if env else {}
     run_env["PYMELOS_PACKAGE_NAME"] = package.name

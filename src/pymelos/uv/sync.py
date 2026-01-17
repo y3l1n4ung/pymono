@@ -14,6 +14,7 @@ def sync(
     locked: bool = True,
     all_extras: bool = False,
     dev: bool = True,
+    all_packages: bool = True,
 ) -> tuple[int, str, str]:
     """Run uv sync at the specified path.
 
@@ -35,6 +36,8 @@ def sync(
         args.append("--locked")
     if all_extras:
         args.append("--all-extras")
+    if all_packages:
+        args.append("--all-packages")
     if not dev:
         args.append("--no-dev")
 
@@ -49,6 +52,7 @@ async def sync_async(
     locked: bool = True,
     all_extras: bool = False,
     dev: bool = True,
+    all_packages: bool = True,
 ) -> tuple[int, str, str]:
     """Run uv sync asynchronously.
 
@@ -70,6 +74,9 @@ async def sync_async(
         args.append("--locked")
     if all_extras:
         args.append("--all-extras")
+    if all_packages:
+        args.append("--all-packages")
+
     if not dev:
         args.append("--no-dev")
 

@@ -1,5 +1,6 @@
 """pymelos commands."""
 
+from pymelos.commands.add import AddProjectCommand, AddProjectOptions, AddProjectResult, add_project
 from pymelos.commands.base import Command, CommandContext, SyncCommand
 from pymelos.commands.bootstrap import (
     BootstrapCommand,
@@ -75,4 +76,9 @@ __all__ = [
     "ReleaseResult",
     "PackageRelease",
     "release",
+    # Add Project
+    "AddProjectCommand",
+    "AddProjectOptions",
+    "AddProjectResult",
+    "add_project",
 ]

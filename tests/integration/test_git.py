@@ -26,16 +26,26 @@ def run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
 @pytest.fixture
 def git_repo(tmp_path: Path) -> Path:
     """Create a git repository with some commits."""
-    # Initialize repo
     run_git(["init"], tmp_path)
-    run_git(["config", "user.email", "test@example.com"], tmp_path)
-    run_git(["config", "user.name", "Test User"], tmp_path)
 
-    # Create initial commit
     readme = tmp_path / "README.md"
     readme.write_text("# Test Repo")
+
     run_git(["add", "README.md"], tmp_path)
-    run_git(["commit", "-m", "feat: initial commit"], tmp_path)
+    run_git(
+        [
+            "-c",
+            "user.name=Test User",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "commit",
+            "-m",
+            "feat: initial commit",
+        ],
+        tmp_path,
+    )
 
     return tmp_path
 

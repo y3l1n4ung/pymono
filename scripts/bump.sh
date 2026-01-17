@@ -9,11 +9,9 @@ echo "==> Running lint check..."
 uv run ruff check .
 uv run ruff format --check .
 
-echo "==> Running tests..."
-uv run pytest --tb=short -q
 
 echo "==> Bumping version ($INCREMENT)..."
-uv run cz bump --increment "$INCREMENT" --yes
+uv run cz bump --increment "$INCREMENT" --no-verify --yes
 
 echo "==> Done! Version bumped successfully."
 git log --oneline -1

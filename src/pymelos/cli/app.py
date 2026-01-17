@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.table import Table
 
 from pymelos.errors import PyMelosError
@@ -119,6 +120,40 @@ def bootstrap(
     asyncio.run(run())
 
 
+@app.command(name="add")
+def run_add_project(
+    name: Annotated[
+        str,
+        typer.Argument(help="Project name"),
+    ],
+    project_type: Annotated[
+        Literal["lib", "app"],
+        typer.Option("--project-type", "-t", help="Project type"),
+    ] = "lib",
+    folder: Annotated[
+        str | None,
+        typer.Option("--folder", "-f", help="Target folder"),
+    ] = None,
+    editable: Annotated[
+        bool,
+        typer.Option("--editable", help="Install project as editable"),
+    ] = True,
+) -> None:
+    from pymelos.commands import add_project
+
+    workspace = get_workspace()
+
+    async def run() -> None:
+        result = await add_project(workspace, name, project_type, folder, editable)
+        if result.success:
+            console.print(f"[green]Added project {name}[/green]")
+        else:
+            error_console.print(f"[red]Failed to add project {name}:[/red] {result.message}")
+            raise typer.Exit(1)
+
+    asyncio.run(run())
+
+
 @app.command("run")
 def run_cmd(
     script: Annotated[str, typer.Argument(help="Script name to run")],
@@ -166,10 +201,13 @@ def run_cmd(
         )
 
         for r in result:
+            package_name = escape(f"[{r.package_name}]")
             if r.success:
-                console.print(f"[green]✓[/green] [{r.package_name}] ({r.duration_ms}ms)")
+                console.print(f"[green]✓[/green] {package_name} ({r.duration_ms}ms)")
+                if r.stdout:
+                    console.print(r.stdout)
             else:
-                console.print(f"[red]✗[/red] [{r.package_name}] (exit {r.exit_code})")
+                console.print(f"[red]✗[/red] {package_name} (exit {r.exit_code})")
                 if r.stderr:
                     console.print(r.stderr)
 
