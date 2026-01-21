@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import typer
+from rich.console import Console
+from rich.markup import escape
+
 from pymelos.commands.base import Command, CommandContext
 from pymelos.execution import BatchResult, ParallelExecutor
 
@@ -114,3 +118,44 @@ async def exec_command(
     )
     cmd = ExecCommand(context, options)
     return await cmd.execute()
+
+
+async def handle_exec_command(
+    workspace: Workspace,
+    command: str,
+    *,
+    console: Console,
+    error_console: Console,
+    scope: str | None = None,
+    since: str | None = None,
+    ignore: list[str] | None = None,
+    concurrency: int = 4,
+    fail_fast: bool = False,
+    topological: bool = False,
+) -> None:
+    try:
+        result = await exec_command(
+            workspace,
+            command,
+            scope=scope,
+            since=since,
+            ignore=ignore,
+            concurrency=concurrency,
+            fail_fast=fail_fast,
+            topological=topological,
+        )
+        for r in result:
+            package_name = escape(f"[{r.package_name}]")
+            if r.success:
+                console.print(f"[green]✓[/green] {package_name} ({r.duration_ms}ms)")
+                if r.stdout:
+                    console.print(r.stdout)
+            else:
+                error_console.print(f"[red]✗[/red] {package_name} ({r.duration_ms}ms)")
+                if r.stdout:
+                    error_console.print(r.stdout)
+                if r.stderr:
+                    error_console.print(r.stderr)
+    except Exception as e:
+        error_console.print(e)
+        raise typer.Exit(1) from e

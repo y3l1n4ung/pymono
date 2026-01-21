@@ -192,7 +192,7 @@ class TestGitWorkflow:
         run_git(["commit", "-m", "feat(lib): add add function"], git_workspace)
 
         # Run release with patch bump
-        result = run_pymelos(["release", "--bump", "patch"], git_workspace)
+        result = run_pymelos(["release", "--bump", "patch", "--yes"], git_workspace)
         assert result.returncode == 0
 
         # Check version was bumped
@@ -211,7 +211,9 @@ class TestGitWorkflow:
         run_git(["add", "."], git_workspace)
         run_git(["commit", "-m", "feat: add functions to both packages"], git_workspace)
 
-        result = run_pymelos(["release", "--scope", "lib", "--bump", "minor"], git_workspace)
+        result = run_pymelos(
+            ["release", "--scope", "lib", "--bump", "minor", "--yes"], git_workspace
+        )
         assert result.returncode == 0
 
         # Only lib should be bumped
@@ -498,7 +500,9 @@ class TestReleaseOptions:
 
     def test_release_no_git_tag(self, release_workspace: Path) -> None:
         """Release with --no-git-tag skips tag creation."""
-        result = run_pymelos(["release", "--bump", "patch", "--no-git-tag"], release_workspace)
+        result = run_pymelos(
+            ["release", "--bump", "patch", "--no-git-tag", "--yes"], release_workspace
+        )
 
         assert result.returncode == 0
 
@@ -508,7 +512,9 @@ class TestReleaseOptions:
 
     def test_release_no_changelog(self, release_workspace: Path) -> None:
         """Release with --no-changelog skips changelog."""
-        result = run_pymelos(["release", "--bump", "patch", "--no-changelog"], release_workspace)
+        result = run_pymelos(
+            ["release", "--bump", "patch", "--no-changelog", "--yes"], release_workspace
+        )
 
         assert result.returncode == 0
 
@@ -523,7 +529,7 @@ class TestReleaseOptions:
         before_count = int(before.stdout.strip())
 
         result = run_pymelos(
-            ["release", "--bump", "patch", "--no-commit", "--no-git-tag"],
+            ["release", "--bump", "patch", "--no-commit", "--no-git-tag", "--yes"],
             release_workspace,
         )
 
@@ -536,7 +542,7 @@ class TestReleaseOptions:
 
     def test_release_creates_tag_and_changelog(self, release_workspace: Path) -> None:
         """Release creates tag and changelog by default."""
-        result = run_pymelos(["release", "--bump", "patch"], release_workspace)
+        result = run_pymelos(["release", "--bump", "patch", "--yes"], release_workspace)
 
         assert result.returncode == 0
 

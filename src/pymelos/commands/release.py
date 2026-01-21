@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import typer
+from rich.console import Console
+from rich.table import Table
+
 from pymelos.commands.base import Command, CommandContext
 from pymelos.versioning import (
     BumpType,
@@ -58,19 +62,11 @@ class ReleaseOptions:
     no_git_tag: bool = False
     no_changelog: bool = False
     no_commit: bool = False
+    verbose: bool = False
 
 
 class ReleaseCommand(Command[ReleaseResult]):
-    """Release packages with semantic versioning.
-
-    This command:
-    1. Determines which packages need release
-    2. Parses commits to determine bump type
-    3. Updates versions in pyproject.toml
-    4. Generates changelog entries
-    5. Creates git commit and tags
-    6. Optionally publishes to PyPI
-    """
+    """Release packages with semantic versioning."""
 
     def __init__(self, context: CommandContext, options: ReleaseOptions | None = None) -> None:
         super().__init__(context)
@@ -85,10 +81,11 @@ class ReleaseCommand(Command[ReleaseResult]):
         """Get packages that need release (scope-filtered only)."""
         from pymelos.filters import filter_by_scope
 
-        return filter_by_scope(list(self.workspace.packages.values()), self.options.scope)
+        pkgs = filter_by_scope(list(self.workspace.packages.values()), self.options.scope)
+        return pkgs
 
     def _prepare_package_release(self, pkg: Package) -> PackageRelease | None:
-        """Prepare release info for a single package. Returns None if package should be skipped."""
+        """Prepare release info for a single package."""
         from pymelos.git import get_commits, get_latest_package_tag
 
         last_tag = get_latest_package_tag(self.workspace.root, pkg.name)
@@ -96,21 +93,12 @@ class ReleaseCommand(Command[ReleaseResult]):
 
         commits = get_commits(self.workspace.root, since=since_ref, path=pkg.path)
 
-        # Skip unchanged packages
         if not commits:
             return None
 
-        # Skip packages with only initial commit unless explicitly scoped
-        if not last_tag and len(commits) <= 1 and not self.options.scope:
-            return None
-
-        # Parse and filter conventional commits
         parsed = [p for c in commits if (p := parse_commit(c)) is not None]
-
-        if not parsed and not self.options.bump:
-            return None
-
         bump = self.options.bump or determine_bump(parsed)
+
         if bump == BumpType.NONE:
             return None
 
@@ -118,7 +106,10 @@ class ReleaseCommand(Command[ReleaseResult]):
         new_version = old_version.bump(bump, self.options.prerelease)
         tag_format = self.workspace.config.versioning.tag_format
 
-        changelog = generate_changelog_entry(str(new_version), parsed, package_name=pkg.name)
+        if parsed:
+            changelog = generate_changelog_entry(str(new_version), parsed, package_name=pkg.name)
+        else:
+            changelog = f"## {new_version}\n\n- Manual release bump ({bump.value})\n"
 
         return PackageRelease(
             name=pkg.name,
@@ -139,7 +130,7 @@ class ReleaseCommand(Command[ReleaseResult]):
             prepend_to_changelog(pkg.path / "CHANGELOG.md", release.changelog_entry)
 
     def _create_git_commit(self, releases: list[PackageRelease]) -> str | None:
-        """Create git commit for releases. Returns commit SHA."""
+        """Create git commit for releases."""
         from pymelos.git import run_git_command
 
         if self.options.no_commit:
@@ -169,7 +160,7 @@ class ReleaseCommand(Command[ReleaseResult]):
             )
 
     def _publish_releases(self, releases: list[PackageRelease]) -> str | None:
-        """Publish releases to PyPI. Returns error message on failure."""
+        """Publish releases to PyPI."""
         from pymelos.uv import build_and_publish
 
         if not self.options.publish:
@@ -190,28 +181,32 @@ class ReleaseCommand(Command[ReleaseResult]):
         if not packages:
             return ReleaseResult(releases=[], success=True)
 
-        # Prepare releases (filter out packages that shouldn't be released)
-        releases = [r for pkg in packages if (r := self._prepare_package_release(pkg)) is not None]
+        releases = []
+        for pkg in packages:
+            rel = self._prepare_package_release(pkg)
+            if rel:
+                releases.append(rel)
 
         if not releases:
             return ReleaseResult(releases=[], success=True)
 
-        # Apply changes if not dry run
-        if not self.is_dry_run:
-            for release in releases:
-                self._apply_release_changes(release)
+        # Stop here if dry run - this allows the CLI to display the plan
+        if self.is_dry_run:
+            return ReleaseResult(releases=releases, success=True)
 
-            commit_sha = self._create_git_commit(releases)
-            self._create_git_tags(releases)
+        # Apply changes
+        for release in releases:
+            self._apply_release_changes(release)
 
-            if error := self._publish_releases(releases):
-                return ReleaseResult(
-                    releases=releases, commit_sha=commit_sha, success=False, error=error
-                )
+        commit_sha = self._create_git_commit(releases)
+        self._create_git_tags(releases)
 
-            return ReleaseResult(releases=releases, commit_sha=commit_sha, success=True)
+        if error := self._publish_releases(releases):
+            return ReleaseResult(
+                releases=releases, commit_sha=commit_sha, success=False, error=error
+            )
 
-        return ReleaseResult(releases=releases, success=True)
+        return ReleaseResult(releases=releases, commit_sha=commit_sha, success=True)
 
 
 async def release(
@@ -226,23 +221,7 @@ async def release(
     no_changelog: bool = False,
     no_commit: bool = False,
 ) -> ReleaseResult:
-    """Convenience function to release packages.
-
-    Args:
-        workspace: Workspace to release.
-        scope: Package scope filter.
-        bump: Override bump type.
-        prerelease: Prerelease tag.
-        dry_run: Show what would happen.
-        publish: Publish to PyPI.
-        no_git_tag: Skip creating git tags.
-        no_changelog: Skip changelog generation.
-        no_commit: Skip git commit.
-
-    Returns:
-        Release result.
-    """
-
+    """Convenience function to release packages."""
     context = CommandContext(workspace=workspace, dry_run=dry_run)
     options = ReleaseOptions(
         scope=scope,
@@ -256,3 +235,103 @@ async def release(
     )
     cmd = ReleaseCommand(context, options)
     return await cmd.execute()
+
+
+async def handle_release_command(
+    workspace: Workspace,
+    *,
+    console: Console,
+    error_console: Console,
+    scope: str | None = None,
+    bump: str | None = None,
+    prerelease: str | None = None,
+    dry_run: bool = False,
+    publish: bool = False,
+    no_git_tag: bool = False,
+    no_changelog: bool = False,
+    no_commit: bool = False,
+    yes: bool = False,
+) -> None:
+    """Handle the release command from the CLI with plan and confirmation."""
+
+    try:
+        bump_type = None
+        if bump:
+            try:
+                bump_type = BumpType[bump.upper()]
+            except KeyError as e:
+                error_console.print(f"[red]Invalid bump type:[/red] {bump}")
+                raise typer.Exit(1) from e
+
+        # 1. Generate Plan (forced dry_run)
+        plan = await release(
+            workspace,
+            scope=scope,
+            bump=bump_type,
+            prerelease=prerelease,
+            dry_run=True,
+            publish=publish,
+            no_git_tag=no_git_tag,
+            no_changelog=no_changelog,
+            no_commit=no_commit,
+        )
+
+        if not plan.releases:
+            console.print("[yellow]No packages to release[/yellow]")
+            return
+
+        if dry_run:
+            console.print("[yellow]Dry run - no changes will be made[/yellow]\n")
+
+        console.print("[bold]Pending releases:[/bold]")
+        table = Table()
+        table.add_column("Package", style="cyan")
+        table.add_column("Current", style="dim")
+        table.add_column("Next", style="green")
+        table.add_column("Bump", style="magenta")
+
+        for r in plan.releases:
+            table.add_row(
+                r.name,
+                r.old_version,
+                r.new_version,
+                r.bump_type.name.lower(),
+            )
+
+        console.print(table)
+
+        # Exit early if only dry run was requested
+        if dry_run:
+            return
+
+        # 2. Confirmation
+        if not yes and not typer.confirm("\nProceed with these releases?", default=False):
+            console.print("[yellow]Release cancelled.[/yellow]")
+            return
+
+        # 3. Execution
+        result = await release(
+            workspace,
+            scope=scope,
+            bump=bump_type,
+            prerelease=prerelease,
+            dry_run=False,
+            publish=publish,
+            no_git_tag=no_git_tag,
+            no_changelog=no_changelog,
+            no_commit=no_commit,
+        )
+
+        if result.success:
+            console.print(f"\n[green]Released {len(result.releases)} packages[/green]")
+            if result.commit_sha:
+                console.print(f"Commit: [blue]{result.commit_sha[:8]}[/blue]")
+        else:
+            error_console.print(f"\n[red]Release failed:[/red] {result.error}")
+            raise typer.Exit(1)
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        error_console.print_exception()
+        raise typer.Exit(1) from e

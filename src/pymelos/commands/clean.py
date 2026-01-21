@@ -7,6 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import typer
+from rich.console import Console
+
 from pymelos.commands.base import Command, CommandContext
 
 if TYPE_CHECKING:
@@ -140,3 +143,27 @@ async def clean(
     options = CleanOptions(scope=scope, patterns=patterns, dry_run=dry_run)
     cmd = CleanCommand(context, options)
     return await cmd.execute()
+
+
+async def handle_clean_command(
+    workspace: Workspace,
+    console: Console,
+    error_console: Console,
+    scope: str | None = None,
+    patterns: list[str] | None = None,
+    dry_run: bool = False,
+) -> None:
+    try:
+        result = await clean(workspace, scope=scope, patterns=patterns, dry_run=dry_run)
+
+        if dry_run:
+            console.print("[yellow]Dry run - no files removed[/yellow]")
+
+        console.print(
+            f"{'Would clean' if dry_run else 'Cleaned'} "
+            f"{result.files_removed} files, {result.dirs_removed} directories "
+            f"({result.bytes_freed / 1024:.1f} KB)"
+        )
+    except Exception as e:
+        error_console.print_exception()
+        raise typer.Exit(1) from e

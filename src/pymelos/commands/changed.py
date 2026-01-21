@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+
+import typer
+from rich.console import Console
 
 from pymelos.commands.base import CommandContext, SyncCommand
 from pymelos.workspace.workspace import Workspace
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass
@@ -159,3 +158,50 @@ def get_changed_packages(
     )
     cmd = ChangedCommand(context, options)
     return cmd.execute()
+
+
+def handle_changed_command(
+    workspace: Workspace,
+    *,
+    console: Console,
+    error_console: Console,
+    since: str,
+    include_dependents: bool = True,
+    scope: str | None = None,
+    ignore: list[str] | None = None,
+    json_output: bool = False,
+) -> None:
+    """Handle changed command."""
+    try:
+        result = get_changed_packages(
+            workspace,
+            since,
+            include_dependents=include_dependents,
+            scope=scope,
+            ignore=ignore,
+        )
+        if json_output:
+            import json
+
+            data = [
+                {
+                    "name": p.name,
+                    "path": p.path,
+                    "files_changed": p.files_changed,
+                    "is_dependent": p.is_dependent,
+                }
+                for p in result.changed
+            ]
+            console.print(json.dumps(data, indent=2))
+        else:
+            console.print(f"Packages changed since [bold]{since}[/bold]:")
+            for pkg in result.changed:
+                suffix = " [dim](dependent)[/dim]" if pkg.is_dependent else ""
+                console.print(f"  - {pkg.name} ({pkg.files_changed} files){suffix}")
+
+            if not result.changed:
+                console.print("  [dim]No packages changed[/dim]")
+
+    except Exception as e:
+        error_console.print_exception()
+        raise typer.Exit(1) from e

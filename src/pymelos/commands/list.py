@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING
 
+import typer
+from rich.console import Console
+from rich.table import Table
+
 from pymelos.commands.base import CommandContext, SyncCommand
 
 if TYPE_CHECKING:
@@ -126,3 +130,61 @@ def list_packages(
     options = ListOptions(scope=scope, since=since, ignore=ignore, format=format)
     cmd = ListCommand(context, options)
     return cmd.execute()
+
+
+def handle_list_command(
+    workspace: Workspace,
+    *,
+    console: Console,
+    error_console: Console,
+    scope: str | None = None,
+    since: str | None = None,
+    json_output: bool = False,
+    graph: bool = False,
+) -> None:
+    try:
+        fmt = ListFormat.TABLE
+        if json_output:
+            fmt = ListFormat.JSON
+        elif graph:
+            fmt = ListFormat.GRAPH
+
+        result = list_packages(workspace, scope=scope, since=since, format=fmt)
+
+        if json_output:
+            import json
+
+            data = [
+                {
+                    "name": p.name,
+                    "version": p.version,
+                    "path": p.path,
+                    "description": p.description,
+                    "dependencies": p.dependencies,
+                }
+                for p in result.packages
+            ]
+            console.print(json.dumps(data, indent=2))
+        elif graph:
+            # Simple tree output
+            for pkg in result.packages:
+                if not pkg.dependencies:
+                    console.print(f"[bold]{pkg.name}[/bold] v{pkg.version}")
+                else:
+                    deps_str = ", ".join(pkg.dependencies)
+                    console.print(f"[bold]{pkg.name}[/bold] v{pkg.version} -> {deps_str}")
+        else:
+            table = Table(title="Packages")
+            table.add_column("Name", style="bold")
+            table.add_column("Version")
+            table.add_column("Path")
+            table.add_column("Dependencies")
+
+            for pkg in result.packages:
+                deps = ", ".join(pkg.dependencies) if pkg.dependencies else "-"
+                table.add_row(pkg.name, pkg.version, pkg.path, deps)
+
+            console.print(table)
+    except Exception as e:
+        error_console.print_exception()
+        raise typer.Exit(1) from e

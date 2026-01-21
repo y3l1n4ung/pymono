@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import typer
+from rich.console import Console
+from rich.markup import escape
+
 from pymelos.commands.base import Command, CommandContext
 from pymelos.errors import ScriptNotFoundError
 from pymelos.execution import BatchResult, ParallelExecutor
@@ -158,3 +162,52 @@ async def run_script(
     )
     cmd = RunCommand(context, options)
     return await cmd.execute()
+
+
+async def handle_run_script(
+    workspace: Workspace,
+    script_name: str,
+    *,
+    console: Console,
+    error_console: Console,
+    scope: str | None = None,
+    since: str | None = None,
+    ignore: list[str] | None = None,
+    concurrency: int = 4,
+    fail_fast: bool = False,
+    topological: bool = True,
+) -> None:
+    try:
+        result = await run_script(
+            workspace,
+            script_name,
+            scope=scope,
+            since=since,
+            ignore=ignore,
+            concurrency=concurrency,
+            fail_fast=fail_fast,
+            topological=topological,
+        )
+        for r in result:
+            package_name = escape(f"[{r.package_name}]")
+            if r.success:
+                console.print(f"[green]✓[/green] {package_name} ({r.duration_ms}ms)")
+                if r.stdout:
+                    console.print(r.stdout)
+            else:
+                console.print(f"[red]✗[/red] {package_name} (exit {r.exit_code})")
+                if r.stdout:
+                    console.print(r.stdout)
+                if r.stderr:
+                    console.print(r.stderr)
+        if result.all_success:
+            console.print(f"\n[green]All {len(result)} packages passed[/green]")
+        else:
+            console.print(
+                f"\n[red]{result.failure_count} failed, {result.success_count} passed[/red]"
+            )
+            raise typer.Exit(1)
+
+    except Exception as err:
+        error_console.print(f"[red]Error:[/red] {err}")
+        raise typer.Exit(1) from err

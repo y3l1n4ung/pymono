@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import typer
+from rich.console import Console
+
+from pymelos import PyMelosError
 from pymelos.commands.base import Command, CommandContext, pip_install_editable
 from pymelos.execution import ExecutionResult
 from pymelos.uv import sync
@@ -92,9 +96,9 @@ class BootstrapCommand(Command[BootstrapResult]):
                 uv_output=stderr or stdout,
             )
         # Install workspace packages (editable)
-        if self.options.editable and self.workspace.packages:
-            package_paths = [pkg.path for pkg in self.workspace.packages.values()]
-            pip_install_editable(package_paths)
+        # if self.options.editable and self.workspace.packages:
+        #     package_paths = [pkg.path for pkg in self.workspace.packages.values()]
+        #     pip_install_editable(package_paths)
 
         # Run bootstrap hooks
         if not self.options.skip_hooks:
@@ -152,3 +156,31 @@ async def bootstrap(
     )
     cmd = BootstrapCommand(context, options)
     return await cmd.execute()
+
+
+async def handle_bootstrap(
+    workspace: Workspace,
+    *,
+    clean_first: bool = False,
+    frozen: bool = False,
+    skip_hooks: bool = False,
+    verbose: bool = False,
+    console: Console,
+    error_console: Console,
+):
+    try:
+        result = await bootstrap(
+            workspace,
+            clean_first=clean_first,
+            frozen=frozen,
+            skip_hooks=skip_hooks,
+            verbose=verbose,
+        )
+        if result.success:
+            console.print(f"[green]Bootstrapped {result.packages_installed} packages[/green]")
+        else:
+            error_console.print(f"[red]Bootstrap failed:[/red] {result.uv_output}")
+            raise typer.Exit(1)
+    except PyMelosError as e:
+        error_console.print(f"[red]Error:[/red] {e.message}")
+        raise typer.Exit(1)  # noqa: B904

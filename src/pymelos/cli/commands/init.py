@@ -6,6 +6,10 @@ import contextlib
 import subprocess
 from pathlib import Path
 
+import typer
+from rich.console import Console
+
+from pymelos import PyMelosError
 from pymelos.errors import ConfigurationError
 
 DEFAULT_PYMELOS_YAML = """# pymelos workspace configuration
@@ -149,3 +153,13 @@ htmlcov/
     if not (path / ".git").exists():
         with contextlib.suppress(subprocess.CalledProcessError, FileNotFoundError):
             subprocess.run(["git", "init"], cwd=path, capture_output=True, check=True)
+
+
+def handle_init(cwd: Path, name: str | None, console: Console, error_console: Console) -> None:
+    try:
+        init_workspace(cwd, name)
+        console.print("[green]Workspace initialized![/green]")
+        console.print("Run [bold]pymelos bootstrap[/bold] to install dependencies.")
+    except PyMelosError as e:
+        error_console.print(f"[red]Error:[/red] {e.message}")
+        raise typer.Exit(1) from e

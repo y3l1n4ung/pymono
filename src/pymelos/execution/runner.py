@@ -90,7 +90,6 @@ async def run_in_package(
     Returns:
         Execution result.
     """
-    print(package.name, command)
     # Build environment with package-specific variables
     run_env = env.copy() if env else {}
     run_env["PYMELOS_PACKAGE_NAME"] = package.name

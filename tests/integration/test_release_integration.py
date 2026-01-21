@@ -163,7 +163,7 @@ class TestReleaseWorkflow:
         run_git(["commit", "-m", "feat: add greet function"], release_workspace)
 
         result = run_pymelos(
-            ["release", "--bump", "patch", "--no-changelog"],
+            ["release", "--bump", "patch", "--no-changelog", "--yes"],
             release_workspace,
         )
 
@@ -181,7 +181,7 @@ class TestReleaseWorkflow:
         run_git(["commit", "-m", "feat: add util"], release_workspace)
 
         result = run_pymelos(
-            ["release", "--bump", "minor", "--no-changelog"],
+            ["release", "--bump", "minor", "--no-changelog", "--yes"],
             release_workspace,
         )
 
@@ -198,7 +198,7 @@ class TestReleaseWorkflow:
         run_git(["add", "."], release_workspace)
         run_git(["commit", "-m", "feat: add api function"], release_workspace)
 
-        result = run_pymelos(["release", "--bump", "patch"], release_workspace)
+        result = run_pymelos(["release", "--bump", "patch", "--yes"], release_workspace)
 
         assert result.returncode == 0
 
@@ -216,7 +216,7 @@ class TestReleaseWorkflow:
         run_git(["commit", "-m", "feat: add beta feature"], release_workspace)
 
         result = run_pymelos(
-            ["release", "--bump", "minor", "--prerelease", "beta", "--no-changelog"],
+            ["release", "--bump", "minor", "--prerelease", "beta", "--no-changelog", "--yes"],
             release_workspace,
         )
 
@@ -233,7 +233,7 @@ class TestReleaseWorkflow:
         run_git(["commit", "-m", "feat!: breaking change"], release_workspace)
 
         result = run_pymelos(
-            ["release", "--bump", "major", "--no-changelog"],
+            ["release", "--bump", "major", "--no-changelog", "--yes"],
             release_workspace,
         )
 
@@ -338,7 +338,7 @@ members = ["packages/*"]
         run_git(["commit", "-m", "feat: update all"], multi_package_workspace)
 
         result = run_pymelos(
-            ["release", "--scope", "alpha", "--bump", "patch", "--no-changelog"],
+            ["release", "--scope", "alpha", "--bump", "patch", "--no-changelog", "--yes"],
             multi_package_workspace,
         )
 
@@ -363,7 +363,7 @@ members = ["packages/*"]
         run_git(["commit", "-m", "feat: update alpha and beta"], multi_package_workspace)
 
         result = run_pymelos(
-            ["release", "--scope", "alpha,beta", "--bump", "minor", "--no-changelog"],
+            ["release", "--scope", "alpha,beta", "--bump", "minor", "--no-changelog", "--yes"],
             multi_package_workspace,
         )
 
@@ -487,7 +487,7 @@ members = ["packages/*"]
         # Note: This test would need environment variable for token
         # For now, just test that dry-run works
         result = run_pymelos(
-            ["release", "--bump", "patch", "--dry-run"],
+            ["release", "--bump", "patch", "--dry-run", "--yes"],
             unique_package_workspace,
         )
 
@@ -506,7 +506,7 @@ class TestReleaseEdgeCases:
 
     def test_release_invalid_bump_type(self, release_workspace: Path) -> None:
         """Release with invalid bump type fails."""
-        result = run_pymelos(["release", "--bump", "invalid"], release_workspace)
+        result = run_pymelos(["release", "--bump", "invalid", "--yes"], release_workspace)
 
         assert result.returncode != 0
 
@@ -529,7 +529,7 @@ class TestReleaseEdgeCases:
         before = run_git(["rev-list", "--count", "HEAD"], release_workspace)
         before_count = int(before.stdout.strip())
 
-        run_pymelos(["release", "--bump", "patch", "--no-changelog"], release_workspace)
+        run_pymelos(["release", "--bump", "patch", "--no-changelog", "--yes"], release_workspace)
 
         after = run_git(["rev-list", "--count", "HEAD"], release_workspace)
         after_count = int(after.stdout.strip())
@@ -548,7 +548,15 @@ class TestReleaseEdgeCases:
         run_git(["commit", "-m", "feat: options test"], release_workspace)
 
         result = run_pymelos(
-            ["release", "--bump", "patch", "--no-git-tag", "--no-changelog", "--no-commit"],
+            [
+                "release",
+                "--bump",
+                "patch",
+                "--no-git-tag",
+                "--no-changelog",
+                "--no-commit",
+                "--yes",
+            ],
             release_workspace,
         )
 
