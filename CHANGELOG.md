@@ -1,3 +1,9 @@
+## v0.1.4 (2026-01-21)
+
+### Feat
+
+- **cli**: refactor command handlers and add version command
+
 ## v0.1.3 (2026-01-17)
 
 ### Fix

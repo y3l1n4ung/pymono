@@ -8,7 +8,7 @@ import typer
 from rich.console import Console
 
 from pymelos import Workspace
-from pymelos.commands.base import Command, CommandContext, pip_install_editable
+from pymelos.commands.base import Command, CommandContext
 from pymelos.execution import run_command
 
 

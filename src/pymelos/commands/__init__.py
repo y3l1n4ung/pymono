@@ -99,7 +99,7 @@ __all__ = [
     "ChangedResult",
     "ChangedPackage",
     "get_changed_packages",
-    "handle_changed_command"
+    "handle_changed_command",
     # Release
     "ReleaseCommand",
     "ReleaseOptions",
@@ -112,8 +112,8 @@ __all__ = [
     "VersionCommand",
     "VersionOptions",
     "VersionResult",
-    "handle_version_command"
-    "version"
+    "handle_version_command",
+    "version",
     # Add Project
     "AddProjectCommand",
     "AddProjectOptions",
