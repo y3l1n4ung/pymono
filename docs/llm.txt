@@ -4,38 +4,43 @@ Python implementation of Melos - a monorepo management tool.
 
 ## What it does
 - Manages multiple Python packages in a single repository
-- Runs commands across packages with filtering
-- Handles versioning and releases
-- Bootstraps dependencies with uv
+- Leverages **uv workspaces** for automatic package linking and dependency management
+- Runs scripts and commands across packages with advanced filtering (scope, since git ref, etc.)
+- Automates **semantic releases**: version bumping, changelog generation, tagging, and publishing
+- Optimizes CI/CD with smart change detection
 
 ## Structure
 src/pymelos/
-  cli/        - Typer CLI commands
-  commands/   - Command implementations
-  config/     - Pydantic config models
-  workspace/  - Package discovery
-  versioning/ - Semantic versioning
-  git/        - Git integration
+  cli/        - Typer CLI commands and entry point
+  commands/   - Business logic for each command
+  config/     - Pydantic models for pymelos.yaml
+  workspace/  - Package discovery and dependency graph
+  versioning/ - Conventional commits parsing and semantic versioning
+  git/        - Git operations and history analysis
+  uv/         - Integration with uv toolchain
 
 ## Key files
-- pymelos.yaml      - Workspace configuration
-- pyproject.toml    - Project metadata
+- pymelos.yaml      - Workspace configuration (scripts, hooks, versioning config)
+- pyproject.toml    - Project metadata and uv workspace members
 - src/pymelos/      - Main source code
 - tests/            - Unit and integration tests
 
 ## Commands
-pymelos list       - List packages
-pymelos run        - Run scripts
-pymelos exec       - Execute shell commands
-pymelos bootstrap  - Install dependencies
-pymelos clean      - Remove build artifacts
-pymelos version    - Bump versions
-pymelos release    - Publish packages
+pymelos init       - Initialize a new workspace
+pymelos bootstrap  - Install dependencies and link packages (via uv sync)
+pymelos add        - Add new packages to the workspace
+pymelos list       - List packages and their dependencies
+pymelos run        - Run scripts defined in pymelos.yaml
+pymelos exec       - Execute arbitrary shell commands across packages
+pymelos changed    - List changed packages since a git reference
+pymelos clean      - Remove build artifacts and temporary files
+pymelos version    - Calculate and apply version bumps and changelogs
+pymelos release    - Version and publish packages to PyPI
 
 ## Tech stack
 - Python 3.10+
-- uv (package manager)
-- Typer (CLI)
-- Pydantic (config)
+- uv (package manager & workspace resolver)
+- Typer (CLI framework)
+- Pydantic (configuration validation)
 - pytest (testing)
 - ty (Type Checking)

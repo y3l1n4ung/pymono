@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to pymelos! This guide will help you get started.
 
+For detailed documentation on how Pymelos works, please check the [docs/](docs/) directory.
+
 ## Development Setup
 
 ### Prerequisites

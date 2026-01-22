@@ -1,0 +1,63 @@
+site_name: Pymelos
+site_description: Python monorepo manager powered by uv
+site_url: https://pymelos.readthedocs.io/
+repo_url: https://github.com/y3l1n4ung/pymelos
+repo_name: y3l1n4ung/pymelos
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: teal
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: teal
+      accent: lime
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - CLI Commands:
+    - Overview: commands/README.md
+    - init: commands/init.md
+    - bootstrap: commands/bootstrap.md
+    - add: commands/add.md
+    - list: commands/list.md
+    - run: commands/run.md
+    - exec: commands/exec.md
+    - changed: commands/changed.md
+    - clean: commands/clean.md
+    - version: commands/version.md
+    - release: commands/release.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
