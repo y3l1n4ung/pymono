@@ -149,7 +149,7 @@ def run_add_project(
 
 @app.command("run")
 def run_cmd(
-    script: Annotated[str, typer.Argument(help="Script name to run")],
+    script: Annotated[str | None, typer.Argument(help="Script name to run")] = None,
     scope: Annotated[
         str | None,
         typer.Option("--scope", "-s", help="Package scope filter"),
@@ -174,11 +174,60 @@ def run_cmd(
         bool,
         typer.Option("--no-topological", help="Ignore dependency order"),
     ] = False,
+    interactive: Annotated[
+        bool,
+        typer.Option("--interactive", "-I", help="Interactive mode"),
+    ] = False,
 ) -> None:
     """Run a defined script across packages."""
     from pymelos.commands import handle_run_script
+    from pymelos.config.schema import ScriptConfig
 
     workspace = get_workspace()
+
+    # Interactive Mode Logic
+    if interactive or not script:
+        from pymelos.interactive import select_execution_options, select_packages, select_script
+
+        # 1. Select Script (if not provided)
+        if not script:
+            scripts = {
+                name: s.description or s.run
+                for name, s in workspace.config.scripts.items()
+                if isinstance(s, ScriptConfig)  # Only include normalized scripts
+            }
+            if not scripts:
+                console.print("[yellow]No scripts defined in pymelos.yaml[/yellow]")
+                raise typer.Exit()
+
+            script = select_script(scripts)
+            if not script:
+                console.print("Operation cancelled.")
+                raise typer.Exit()
+
+            script = select_script(scripts)
+            if not script:
+                console.print("Operation cancelled.")
+                raise typer.Exit()
+
+        # 2. Select Scope (if not fully specified)
+        if not scope and not since:
+            options = select_execution_options()
+            if not options:  # Cancelled
+                raise typer.Exit()
+
+            if options["scope"] == "changed":
+                # Default to main for interactive simplicity, or ask?
+                # For now let's assume 'main' is a safe default for "Changed"
+                since = "main"
+            elif options["scope"] == "manual":
+                selected_pkgs = select_packages(list(workspace.packages.values()))
+                if not selected_pkgs:
+                    console.print("No packages selected.")
+                    raise typer.Exit()
+                # Construct scope string
+                scope = ",".join(p.name for p in selected_pkgs)
+
     ignore_list = parse_comma_list(ignore)
 
     asyncio.run(
