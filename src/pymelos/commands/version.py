@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import Any
+
+from rich.console import Console
 
 from pymelos.commands.base import Command, CommandContext
 from pymelos.versioning import (
@@ -15,11 +17,7 @@ from pymelos.versioning import (
     prepend_to_changelog,
     update_all_versions,
 )
-
-if TYPE_CHECKING:
-    from rich.console import Console
-
-    from pymelos.workspace.workspace import Workspace
+from pymelos.workspace.workspace import Workspace
 
 
 @dataclass

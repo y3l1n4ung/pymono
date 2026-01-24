@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import fnmatch
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from pymelos.workspace.package import Package
+from pymelos.workspace.package import Package
 
 
 def parse_scope(scope: str) -> list[str]:

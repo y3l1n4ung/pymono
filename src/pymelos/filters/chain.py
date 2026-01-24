@@ -6,10 +6,8 @@ from typing import TYPE_CHECKING
 
 from pymelos.filters.ignore import filter_by_ignore
 from pymelos.filters.scope import filter_by_scope
-
-if TYPE_CHECKING:
-    from pymelos.workspace.package import Package
-    from pymelos.workspace.workspace import Workspace
+from pymelos.workspace.package import Package
+from pymelos.workspace.workspace import Workspace
 
 
 def apply_filters(

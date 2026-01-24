@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from pymelos.workspace.package import Package
-    from pymelos.workspace.workspace import Workspace
+from pymelos.workspace.package import Package
+from pymelos.workspace.workspace import Workspace
 
 
 def get_changed_files(

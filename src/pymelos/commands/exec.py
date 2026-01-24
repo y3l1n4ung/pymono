@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
@@ -12,10 +11,8 @@ from rich.markup import escape
 
 from pymelos.commands.base import Command, CommandContext
 from pymelos.execution import BatchResult, ParallelExecutor
-
-if TYPE_CHECKING:
-    from pymelos.workspace import Package
-    from pymelos.workspace.workspace import Workspace
+from pymelos.workspace import Package
+from pymelos.workspace.workspace import Workspace
 
 
 @dataclass

@@ -4,12 +4,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
+from pymelos.git.commits import Commit
 from pymelos.versioning.semver import BumpType
-
-if TYPE_CHECKING:
-    from pymelos.git.commits import Commit
 
 # Conventional commit regex
 # Matches: type(scope)!: description

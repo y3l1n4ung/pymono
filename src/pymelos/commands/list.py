@@ -4,17 +4,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
 from pymelos.commands.base import CommandContext, SyncCommand
-
-if TYPE_CHECKING:
-    from pymelos.workspace import Package
-    from pymelos.workspace.workspace import Workspace
+from pymelos.workspace import Package
+from pymelos.workspace.workspace import Workspace
 
 
 class ListFormat(Enum):

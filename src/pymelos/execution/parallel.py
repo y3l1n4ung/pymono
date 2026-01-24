@@ -4,13 +4,10 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Callable, Iterator
-from typing import TYPE_CHECKING
 
 from pymelos.execution.results import BatchResult, ExecutionResult, ExecutionStatus
 from pymelos.execution.runner import run_in_package
-
-if TYPE_CHECKING:
-    from pymelos.workspace.package import Package
+from pymelos.workspace.package import Package
 
 
 class ParallelExecutor:

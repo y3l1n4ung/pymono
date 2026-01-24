@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import fnmatch
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from pymelos.workspace.package import Package
+from pymelos.workspace.package import Package
 
 
 def should_ignore(package: Package, patterns: list[str]) -> bool:
