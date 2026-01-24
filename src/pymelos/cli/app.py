@@ -441,6 +441,34 @@ def version(
     )
 
 
+@app.command()
+def export(
+    package: Annotated[str, typer.Argument(help="Package to export")],
+    output: Annotated[
+        str,
+        typer.Option("--output", "-o", help="Output directory"),
+    ] = "dist",
+    clean: Annotated[
+        bool,
+        typer.Option("--clean", help="Clean output directory before export"),
+    ] = True,
+) -> None:
+    """Export a package and its dependencies for deployment."""
+    from pymelos.commands.export import handle_export_command
+
+    workspace = get_workspace()
+    asyncio.run(
+        handle_export_command(
+            workspace=workspace,
+            package_name=package,
+            console=console,
+            error_console=error_console,
+            output=output,
+            clean=clean,
+        )
+    )
+
+
 def main() -> None:
     """Main entry point."""
     app()
