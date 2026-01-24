@@ -9,6 +9,7 @@ Pymelos provides a suite of commands to manage your workspace.
 - [`add`](add.md): Add a new package to the workspace.
 - [`list`](list.md): List packages in the workspace.
 - [`clean`](clean.md): Clean build artifacts.
+- [`export`](export.md): Export package for deployment.
 
 ## Execution Commands
 

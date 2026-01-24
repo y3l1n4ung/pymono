@@ -34,6 +34,7 @@ pymelos run        - Run scripts defined in pymelos.yaml
 pymelos exec       - Execute arbitrary shell commands across packages
 pymelos changed    - List changed packages since a git reference
 pymelos clean      - Remove build artifacts and temporary files
+pymelos export     - Export package and dependencies for deployment
 pymelos version    - Calculate and apply version bumps and changelogs
 pymelos release    - Version and publish packages to PyPI
 

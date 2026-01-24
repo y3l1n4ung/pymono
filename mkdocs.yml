@@ -46,6 +46,7 @@ nav:
     - exec: commands/exec.md
     - changed: commands/changed.md
     - clean: commands/clean.md
+    - export: commands/export.md
     - version: commands/version.md
     - release: commands/release.md
 
