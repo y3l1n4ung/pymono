@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import os
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -14,12 +15,31 @@ if TYPE_CHECKING:
     from pymelos.workspace.package import Package
 
 
+async def _read_stream(
+    stream: asyncio.StreamReader,
+    callback: Callable[[str], None] | None,
+    buffer: list[str],
+) -> None:
+    """Read from stream line by line."""
+    while True:
+        line = await stream.readline()
+        if not line:
+            break
+        decoded = line.decode("utf-8", errors="replace")
+        buffer.append(decoded)
+        if callback:
+            # Strip newline for display as print usually adds one
+            callback(decoded.rstrip())
+
+
 async def run_command(
     command: str,
     cwd: Path,
     *,
     env: dict[str, str] | None = None,
     timeout: float | None = None,
+    on_stdout: Callable[[str], None] | None = None,
+    on_stderr: Callable[[str], None] | None = None,
 ) -> tuple[int, str, str, int]:
     """Run a shell command asynchronously.
 
@@ -28,6 +48,8 @@ async def run_command(
         cwd: Working directory.
         env: Environment variables (merged with current env).
         timeout: Timeout in seconds.
+        on_stdout: Callback for stdout lines.
+        on_stderr: Callback for stderr lines.
 
     Returns:
         Tuple of (exit_code, stdout, stderr, duration_ms).
@@ -48,10 +70,20 @@ async def run_command(
             env=run_env,
         )
 
+        if process.stdout is None or process.stderr is None:
+            raise RuntimeError("Process stdout/stderr is None")
+
+        stdout_buffer: list[str] = []
+        stderr_buffer: list[str] = []
+
         try:
-            # Use communicate to wait for the process and capture all output at once
-            stdout_bytes, stderr_bytes = await asyncio.wait_for(
-                process.communicate(),
+            # Read streams concurrently
+            await asyncio.wait_for(
+                asyncio.gather(
+                    _read_stream(process.stdout, on_stdout, stdout_buffer),
+                    _read_stream(process.stderr, on_stderr, stderr_buffer),
+                    process.wait(),
+                ),
                 timeout=timeout,
             )
         except (asyncio.TimeoutError, TimeoutError):
@@ -62,8 +94,8 @@ async def run_command(
 
         duration_ms = int((time.monotonic() - start_time) * 1000)
 
-        stdout = stdout_bytes.decode("utf-8", errors="replace")
-        stderr = stderr_bytes.decode("utf-8", errors="replace")
+        stdout = "".join(stdout_buffer)
+        stderr = "".join(stderr_buffer)
 
         return process.returncode or 0, stdout, stderr, duration_ms
 
@@ -78,6 +110,8 @@ async def run_in_package(
     *,
     env: dict[str, str] | None = None,
     timeout: float | None = None,
+    on_stdout: Callable[[str], None] | None = None,
+    on_stderr: Callable[[str], None] | None = None,
 ) -> ExecutionResult:
     """Run a command in a package directory.
 
@@ -86,6 +120,8 @@ async def run_in_package(
         command: Shell command to execute.
         env: Additional environment variables.
         timeout: Timeout in seconds.
+        on_stdout: Callback for stdout lines.
+        on_stderr: Callback for stderr lines.
 
     Returns:
         Execution result.
@@ -101,6 +137,8 @@ async def run_in_package(
         cwd=package.path,
         env=run_env,
         timeout=timeout,
+        on_stdout=on_stdout,
+        on_stderr=on_stderr,
     )
 
     if exit_code == 0:

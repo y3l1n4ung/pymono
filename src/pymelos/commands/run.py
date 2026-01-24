@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -39,9 +40,15 @@ class RunCommand(Command[BatchResult]):
     by scope, git changes, or ignored patterns.
     """
 
-    def __init__(self, context: CommandContext, options: RunOptions) -> None:
+    def __init__(
+        self,
+        context: CommandContext,
+        options: RunOptions,
+        output_handler: Callable[[str, str, bool], None] | None = None,
+    ) -> None:
         super().__init__(context)
         self.options = options
+        self.output_handler = output_handler
 
     def validate(self) -> list[str]:
         """Validate the command."""
@@ -113,13 +120,13 @@ class RunCommand(Command[BatchResult]):
         if topological:
             # Execute in dependency order
             batches = self.workspace.parallel_batches(packages)
-            return await executor.execute_batches(batches, script.run, env=env)
+            return await executor.execute_batches(
+                batches, script.run, env=env, output_handler=self.output_handler
+            )
         else:
             # Execute all in parallel
             return await executor.execute(
-                packages,
-                script.run,
-                env=env,
+                packages, script.run, env=env, output_handler=self.output_handler
             )
 
 
@@ -133,6 +140,7 @@ async def run_script(
     concurrency: int = 4,
     fail_fast: bool = False,
     topological: bool = True,
+    output_handler: Callable[[str, str, bool], None] | None = None,
 ) -> BatchResult:
     """Convenience function to run a script.
 
@@ -145,6 +153,7 @@ async def run_script(
         concurrency: Parallel jobs.
         fail_fast: Stop on first failure.
         topological: Respect dependency order.
+        output_handler: Callback for output streaming.
 
     Returns:
         Batch result with all execution results.
@@ -160,7 +169,7 @@ async def run_script(
         fail_fast=fail_fast,
         topological=topological,
     )
-    cmd = RunCommand(context, options)
+    cmd = RunCommand(context, options, output_handler=output_handler)
     return await cmd.execute()
 
 
@@ -177,6 +186,17 @@ async def handle_run_script(
     fail_fast: bool = False,
     topological: bool = True,
 ) -> None:
+    def output_handler(pkg_name: str, line: str, is_stderr: bool) -> None:
+        prefix = f"[{pkg_name}] "
+        style = "red" if is_stderr else "dim"
+        # Using print directly might be safer for interleaved output than console.print?
+        # But console.print handles styles.
+        # Ensure thread safety if needed, though we are in async loop
+        if is_stderr:
+            error_console.print(f"[{style}]{escape(prefix)}[/{style}]{escape(line)}")
+        else:
+            console.print(f"[{style}]{escape(prefix)}[/{style}]{escape(line)}")
+
     try:
         result = await run_script(
             workspace,
@@ -187,19 +207,8 @@ async def handle_run_script(
             concurrency=concurrency,
             fail_fast=fail_fast,
             topological=topological,
+            output_handler=output_handler,
         )
-        for r in result:
-            package_name = escape(f"[{r.package_name}]")
-            if r.success:
-                console.print(f"[green]✓[/green] {package_name} ({r.duration_ms}ms)")
-                if r.stdout:
-                    console.print(r.stdout)
-            else:
-                console.print(f"[red]✗[/red] {package_name} (exit {r.exit_code})")
-                if r.stdout:
-                    console.print(r.stdout)
-                if r.stderr:
-                    console.print(r.stderr)
         if result.all_success:
             console.print(f"\n[green]All {len(result)} packages passed[/green]")
         else:

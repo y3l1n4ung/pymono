@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from typing import TYPE_CHECKING
 
 from pymelos.execution.results import BatchResult, ExecutionResult, ExecutionStatus
@@ -45,6 +45,7 @@ class ParallelExecutor:
         *,
         env: dict[str, str] | None = None,
         timeout: float | None = None,
+        output_handler: Callable[[str, str, bool], None] | None = None,
     ) -> BatchResult:
         """Execute command across packages in parallel.
 
@@ -53,6 +54,7 @@ class ParallelExecutor:
             command: Shell command to execute.
             env: Environment variables.
             timeout: Per-package timeout in seconds.
+            output_handler: Callback (pkg_name, line, is_stderr) for streaming output.
 
         Returns:
             Batch result with all execution results.
@@ -78,7 +80,28 @@ class ParallelExecutor:
                         exit_code=-1,
                     )
 
-                result = await run_in_package(pkg, command, env=env, timeout=timeout)
+                on_out = None
+                on_err = None
+                if output_handler:
+                    handler = output_handler
+
+                    def _on_out(line: str) -> None:
+                        handler(pkg.name, line, False)
+
+                    def _on_err(line: str) -> None:
+                        handler(pkg.name, line, True)
+
+                    on_out = _on_out
+                    on_err = _on_err
+
+                result = await run_in_package(
+                    pkg,
+                    command,
+                    env=env,
+                    timeout=timeout,
+                    on_stdout=on_out,
+                    on_stderr=on_err,
+                )
 
                 if self.fail_fast and result.failed:
                     self._cancelled = True
@@ -97,6 +120,7 @@ class ParallelExecutor:
         *,
         env: dict[str, str] | None = None,
         timeout: float | None = None,
+        output_handler: Callable[[str, str, bool], None] | None = None,
     ) -> BatchResult:
         """Execute command across package batches (topological order).
 
@@ -107,6 +131,7 @@ class ParallelExecutor:
             command: Shell command to execute.
             env: Environment variables.
             timeout: Per-package timeout in seconds.
+            output_handler: Callback (pkg_name, line, is_stderr) for streaming output.
 
         Returns:
             Batch result with all execution results.
@@ -132,6 +157,7 @@ class ParallelExecutor:
                 command,
                 env=env,
                 timeout=timeout,
+                output_handler=output_handler,
             )
             all_results.extend(batch_result.results)
 

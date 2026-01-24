@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -38,9 +39,15 @@ class ExecCommand(Command[BatchResult]):
     than a script name from configuration.
     """
 
-    def __init__(self, context: CommandContext, options: ExecOptions) -> None:
+    def __init__(
+        self,
+        context: CommandContext,
+        options: ExecOptions,
+        output_handler: Callable[[str, str, bool], None] | None = None,
+    ) -> None:
         super().__init__(context)
         self.options = options
+        self.output_handler = output_handler
 
     def get_packages(self) -> list[Package]:
         """Get packages to execute command in."""
@@ -74,9 +81,13 @@ class ExecCommand(Command[BatchResult]):
 
         if self.options.topological:
             batches = self.workspace.parallel_batches(packages)
-            return await executor.execute_batches(batches, self.options.command, env=env)
+            return await executor.execute_batches(
+                batches, self.options.command, env=env, output_handler=self.output_handler
+            )
         else:
-            return await executor.execute(packages, self.options.command, env=env)
+            return await executor.execute(
+                packages, self.options.command, env=env, output_handler=self.output_handler
+            )
 
 
 async def exec_command(
@@ -89,6 +100,7 @@ async def exec_command(
     concurrency: int = 4,
     fail_fast: bool = False,
     topological: bool = False,
+    output_handler: Callable[[str, str, bool], None] | None = None,
 ) -> BatchResult:
     """Convenience function to execute a command.
 
@@ -101,6 +113,7 @@ async def exec_command(
         concurrency: Parallel jobs.
         fail_fast: Stop on first failure.
         topological: Respect dependency order.
+        output_handler: Callback for output streaming.
 
     Returns:
         Batch result.
@@ -116,7 +129,7 @@ async def exec_command(
         fail_fast=fail_fast,
         topological=topological,
     )
-    cmd = ExecCommand(context, options)
+    cmd = ExecCommand(context, options, output_handler=output_handler)
     return await cmd.execute()
 
 
@@ -133,6 +146,14 @@ async def handle_exec_command(
     fail_fast: bool = False,
     topological: bool = False,
 ) -> None:
+    def output_handler(pkg_name: str, line: str, is_stderr: bool) -> None:
+        prefix = f"[{pkg_name}] "
+        style = "red" if is_stderr else "dim"
+        if is_stderr:
+            error_console.print(f"[{style}]{escape(prefix)}[/{style}]{escape(line)}")
+        else:
+            console.print(f"[{style}]{escape(prefix)}[/{style}]{escape(line)}")
+
     try:
         result = await exec_command(
             workspace,
@@ -143,19 +164,16 @@ async def handle_exec_command(
             concurrency=concurrency,
             fail_fast=fail_fast,
             topological=topological,
+            output_handler=output_handler,
         )
         for r in result:
             package_name = escape(f"[{r.package_name}]")
             if r.success:
-                console.print(f"[green]✓[/green] {package_name} ({r.duration_ms}ms)")
-                if r.stdout:
-                    console.print(r.stdout)
+                # Output already streamed
+                pass
             else:
                 error_console.print(f"[red]✗[/red] {package_name} ({r.duration_ms}ms)")
-                if r.stdout:
-                    error_console.print(r.stdout)
-                if r.stderr:
-                    error_console.print(r.stderr)
+                # Output already streamed
     except Exception as e:
         error_console.print(e)
         raise typer.Exit(1) from e
