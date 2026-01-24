@@ -208,3 +208,62 @@ def get_default_branch(cwd: Path | None = None) -> str:
 
     # Default to master
     return "master"
+
+
+def get_recent_refs(cwd: Path | None = None, limit: int = 10) -> list[tuple[str, str]]:
+    """Get recent git references (branches, tags, commits).
+
+    Args:
+        cwd: Working directory.
+        limit: Number of refs to return.
+
+    Returns:
+        List of (label, value) tuples.
+    """
+    refs: list[tuple[str, str]] = []
+
+    # Get recent branches
+    result = run_git_command(
+        ["branch", "--sort=-committerdate", "--format=%(refname:short)"],
+        cwd=cwd,
+        check=False,
+    )
+    if result.returncode == 0:
+        for b in result.stdout.strip().splitlines()[:limit]:
+            if b:
+                refs.append((f"[branch] {b}", b))
+
+    # Get recent tags
+    result = run_git_command(
+        ["tag", "--sort=-creatordate", "--format=%(refname:short)"],
+        cwd=cwd,
+        check=False,
+    )
+    if result.returncode == 0:
+        for t in result.stdout.strip().splitlines()[:limit]:
+            if t:
+                refs.append((f"[tag] {t}", t))
+
+    # Get recent commits (graph style)
+    # Format: hash|hash (refs) subject (time)
+    # using | as delimiter to separate value from label
+    result = run_git_command(
+        ["log", f"-n{limit}", "--pretty=format:%h|%h %d %s (%cr)"],
+        cwd=cwd,
+        check=False,
+    )
+    if result.returncode == 0:
+        for line in result.stdout.strip().splitlines():
+            if "|" in line:
+                val, label = line.split("|", 1)
+                refs.append((label.strip(), val))
+
+    # Deduplicate by value
+    unique_refs = []
+    seen = set()
+    for label, val in refs:
+        if val not in seen:
+            unique_refs.append((label, val))
+            seen.add(val)
+
+    return unique_refs[: limit * 2]

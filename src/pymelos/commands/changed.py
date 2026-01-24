@@ -205,3 +205,56 @@ def handle_changed_command(
     except Exception as e:
         error_console.print_exception()
         raise typer.Exit(1) from e
+
+
+def review_changes_interactive(
+    workspace: Workspace,
+    since: str,
+    changed_packages: list[ChangedPackage],
+    console: Console,
+) -> None:
+    """Run interactive review of changed packages.
+
+    Args:
+        workspace: Workspace instance.
+        since: Git reference.
+        changed_packages: List of changed packages.
+        console: Console for output.
+    """
+    from rich.syntax import Syntax
+
+    from pymelos.git.diff import get_changed_files_in_package, get_file_diff
+    from pymelos.interactive import select_file_for_review, select_package_for_review
+
+    if not changed_packages:
+        console.print("[yellow]No packages changed.[/yellow]")
+        return
+
+    while True:
+        # Level 1: Select Package
+        pkg_name = select_package_for_review(changed_packages)
+        if not pkg_name:
+            break
+
+        # Find the package object
+        pkg = next((p for p in changed_packages if p.name == pkg_name), None)
+        if not pkg:
+            continue
+
+        # Level 2: Get files (fetch once per package)
+        files = get_changed_files_in_package(workspace.root, since, workspace.root / pkg.path)
+
+        while True:
+            # Level 2: Select File
+            selected_file = select_file_for_review(files)
+
+            if not selected_file:
+                break
+
+            # Level 3: Show Diff
+            diff = get_file_diff(workspace.root, since, selected_file)
+
+            # Use rich pager for nice scrolling
+            syntax = Syntax(diff, "diff", theme="monokai", line_numbers=True)
+            with console.pager():
+                console.print(syntax)

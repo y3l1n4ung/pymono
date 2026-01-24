@@ -163,7 +163,8 @@ async def handle_export_command(
         )
 
         console.print(
-            f"[green]Successfully exported {len(result.packages_exported)} packages to {result.output_path}[/green]"
+            f"[green]Successfully exported {len(result.packages_exported)} packages to "
+            f"{result.output_path}[/green]"
         )
         console.print("Exported packages:")
         for pkg in result.packages_exported:

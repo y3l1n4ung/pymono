@@ -217,8 +217,6 @@ def run_cmd(
                 raise typer.Exit()
 
             if options["scope"] == "changed":
-                # Default to main for interactive simplicity, or ask?
-                # For now let's assume 'main' is a safe default for "Changed"
                 since = "main"
             elif options["scope"] == "manual":
                 selected_pkgs = select_packages(list(workspace.packages.values()))
@@ -354,7 +352,7 @@ def clean(
 
 @app.command()
 def changed(
-    since: Annotated[str, typer.Argument(help="Git reference (branch, tag, commit)")],
+    since: Annotated[str | None, typer.Argument(help="Git reference (branch, tag, commit)")] = None,
     no_dependents: Annotated[
         bool,
         typer.Option("--no-dependents", help="Exclude dependent packages"),
@@ -363,11 +361,78 @@ def changed(
         bool,
         typer.Option("--json", help="Output as JSON"),
     ] = False,
+    interactive: Annotated[
+        bool,
+        typer.Option("--interactive", "-I", help="Interactive review mode"),
+    ] = False,
 ) -> None:
     """List packages changed since a git reference."""
     from pymelos.commands import handle_changed_command
 
     workspace = get_workspace()
+
+    is_interactive = interactive
+
+    if not since:
+        is_interactive = True
+        from pymelos.git.repo import get_recent_refs
+        from pymelos.interactive import select_git_reference
+
+        refs = get_recent_refs(workspace.root)
+        since = select_git_reference(refs)
+
+        if not since:
+            console.print("Operation cancelled.")
+            raise typer.Exit()
+
+    if is_interactive:
+        from rich.syntax import Syntax
+
+        from pymelos.commands.changed import get_changed_packages
+        from pymelos.git.diff import get_changed_files_in_package, get_file_diff
+        from pymelos.interactive import select_file_for_review, select_package_for_review
+
+        # Get changed packages
+        result = get_changed_packages(
+            workspace,
+            since,
+            include_dependents=False,
+        )
+
+        if not result.changed:
+            console.print("[yellow]No packages changed.[/yellow]")
+            return
+
+        while True:
+            # Level 1: Select Package
+            pkg_name = select_package_for_review(result.changed)
+            if not pkg_name:
+                break
+
+            # Find the package object
+            pkg = next((p for p in result.changed if p.name == pkg_name), None)
+            if not pkg:
+                break
+
+            while True:
+                # Level 2: Select File
+                files = get_changed_files_in_package(
+                    workspace.root, since, workspace.root / pkg.path
+                )
+                selected_file = select_file_for_review(files)
+
+                if not selected_file:
+                    break
+
+                # Level 3: Show Diff
+                diff = get_file_diff(workspace.root, since, selected_file)
+
+                # Use rich pager for nice scrolling
+                syntax = Syntax(diff, "diff", theme="monokai", line_numbers=True)
+                with console.pager():
+                    console.print(syntax)
+        return
+
     handle_changed_command(
         workspace=workspace,
         console=console,
