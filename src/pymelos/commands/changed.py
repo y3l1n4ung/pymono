@@ -207,6 +207,39 @@ def handle_changed_command(
         raise typer.Exit(1) from e
 
 
+def _review_package_files(
+    workspace: Workspace, since: str, pkg: ChangedPackage, console: Console
+) -> None:
+    """Interactive review loop for a single package."""
+    from pathlib import Path
+
+    from rich.syntax import Syntax
+
+    from pymelos.git.diff import get_changed_files_in_package, get_file_diff
+    from pymelos.interactive import select_file_for_review
+
+    # Use relative path for git diff filtering to be safe
+    # pkg.path is a relative string path from root
+    files = get_changed_files_in_package(workspace.root, since, Path(pkg.path))
+
+    while True:
+        selected_file = select_file_for_review(files)
+        if not selected_file:
+            break
+
+        diff = get_file_diff(workspace.root, since, selected_file)
+
+        # Determine syntax highlighting based on extension
+        lexer = "diff"
+        if selected_file.endswith(".py"):
+            # If we want to show file content? No, diff. Diff lexer is correct.
+            pass
+
+        syntax = Syntax(diff, lexer, theme="monokai", line_numbers=True)
+        with console.pager():
+            console.print(syntax)
+
+
 def review_changes_interactive(
     workspace: Workspace,
     since: str,
@@ -221,10 +254,7 @@ def review_changes_interactive(
         changed_packages: List of changed packages.
         console: Console for output.
     """
-    from rich.syntax import Syntax
-
-    from pymelos.git.diff import get_changed_files_in_package, get_file_diff
-    from pymelos.interactive import select_file_for_review, select_package_for_review
+    from pymelos.interactive import select_package_for_review
 
     if not changed_packages:
         console.print("[yellow]No packages changed.[/yellow]")
@@ -241,20 +271,5 @@ def review_changes_interactive(
         if not pkg:
             continue
 
-        # Level 2: Get files (fetch once per package)
-        files = get_changed_files_in_package(workspace.root, since, workspace.root / pkg.path)
-
-        while True:
-            # Level 2: Select File
-            selected_file = select_file_for_review(files)
-
-            if not selected_file:
-                break
-
-            # Level 3: Show Diff
-            diff = get_file_diff(workspace.root, since, selected_file)
-
-            # Use rich pager for nice scrolling
-            syntax = Syntax(diff, "diff", theme="monokai", line_numbers=True)
-            with console.pager():
-                console.print(syntax)
+        # Level 2: Review Files
+        _review_package_files(workspace, since, pkg, console)
