@@ -12,86 +12,23 @@ from rich.console import Console
 
 from pymelos import PyMelosError
 from pymelos.errors import ConfigurationError
-
-# Template for pymelos.yaml
-PYMELOS_YAML_TEMPLATE = """# pymelos workspace configuration
-name: {name}
-
-packages:
-  - packages/*
-  - app/*
-
-scripts:
-{scripts}
-
-command_defaults:
-  concurrency: 4
-  fail_fast: false
-  topological: true
-
-clean:
-  patterns:
-    - "__pycache__"
-    - "*.pyc"
-    - ".pytest_cache"
-    - ".mypy_cache"
-    - ".ruff_cache"
-    - "*.egg-info"
-    - "dist"
-    - "build"
-  protected:
-    - ".venv"
-    - ".git"
-
-versioning:
-  commit_format: conventional
-  tag_format: "{{name}}@{{version}}"
-  changelog:
-    enabled: true
-    filename: CHANGELOG.md
-"""
-
-# Template for pyproject.toml
-PYPROJECT_TOML_TEMPLATE = """[project]
-name = "{name}"
-version = "0.0.0"
-description = "{description}"
-requires-python = ">=3.10"
-readme = "README.md"
-
-[tool.uv]
-workspace = {{ members = ["packages/*", "app/*"] }}
-
-{type_checker_config}
-
-{tools_config}
-"""
+from pymelos.templates import (
+    LINT_SCRIPT_TEMPLATE,
+    PYMELOS_YAML_TEMPLATE,
+    PYPROJECT_TOML_TEMPLATE,
+    TEST_SCRIPT_TEMPLATE,
+    TOOL_CONFIGS,
+    TYPECHECK_SCRIPT_TEMPLATE,
+)
 
 
-def get_test_script(use_pytest: bool) -> str:
-    if not use_pytest:
-        return ""
-
-    return """  test:
-    description: Run tests
-    run: |
-      if [ -d tests ] && [ "$(ls -A tests)" ]; then
-        pytest tests/ -v --tb=short --cov=src --cov-report=term-missing
-      else
-        echo "No tests found"
-      fi"""
-
-
-def get_lint_scripts(use_ruff: bool, type_checker: str) -> str:
+def get_scripts(use_pytest: bool, use_ruff: bool, type_checker: str) -> str:
     scripts = []
+    if use_pytest:
+        scripts.append(TEST_SCRIPT_TEMPLATE)
 
     if use_ruff:
-        scripts.append("""  lint:
-    run: ruff check .
-    description: Run linting""")
-        scripts.append("""  format:
-    run: ruff format .
-    description: Format code""")
+        scripts.append(LINT_SCRIPT_TEMPLATE)
 
     if type_checker != "none":
         check_cmd = {
@@ -100,36 +37,25 @@ def get_lint_scripts(use_ruff: bool, type_checker: str) -> str:
             "mypy": "mypy .",
         }.get(type_checker, "echo 'No type checker configured'")
 
-        scripts.append(f"""  typecheck:
-    run: {check_cmd}
-    description: Run type checking""")
+        scripts.append(TYPECHECK_SCRIPT_TEMPLATE.format(cmd=check_cmd))
 
     return "\n\n".join(scripts)
 
 
-def get_dev_dependencies(use_pytest: bool, use_ruff: bool, type_checker: str) -> list[str]:
-    deps = []
-    if use_pytest:
-        deps.extend(["pytest>=8.0.0", "pytest-cov>=5.0.0"])
-    if use_ruff:
-        deps.append("ruff>=0.8.0")
+def run_uv_add(cwd: Path, packages: list[str], dev: bool = False) -> None:
+    """Run uv add command."""
+    if not packages:
+        return
 
-    if type_checker == "ty":
-        # ty is installed via tool usually, but can be dev dep?
-        # Astral's ty might not be on PyPI as 'ty' yet?
-        # Assuming it is available or user has it.
-        # If unknown, we might skip adding it to deps and assume global install?
-        # Let's add it if known. Currently 'ty' on PyPI is NOT Astral's tool.
-        # But per instruction "ty ( is from astral.sh)", we support it.
-        # We'll skip adding it to dev-dependencies to avoid pulling the wrong package
-        # unless user explicitly wants it.
-        pass
-    elif type_checker == "pyright":
-        deps.append("pyright>=1.1.0")
-    elif type_checker == "mypy":
-        deps.append("mypy>=1.10.0")
+    cmd = ["uv", "add"]
+    if dev:
+        cmd.extend(["--group", "dev"])
+    cmd.extend(packages)
 
-    return deps
+    # We use check=False to avoid crashing if uv is missing or fails (e.g. network)
+    # But ideally we should warn.
+    with contextlib.suppress(subprocess.CalledProcessError, FileNotFoundError):
+        subprocess.run(cmd, cwd=cwd, check=True, capture_output=True)
 
 
 def init_workspace(
@@ -154,37 +80,24 @@ def init_workspace(
     if not name:
         name = path.name
 
-    # Prepare Scripts
-    test_script = get_test_script(use_pytest)
-    lint_scripts = get_lint_scripts(use_ruff, type_checker)
-    all_scripts = "\n\n".join(filter(None, [test_script, lint_scripts]))
-
-    # Create pymelos.yaml
+    # 1. Create pymelos.yaml
+    scripts_content = get_scripts(use_pytest, use_ruff, type_checker)
+    # No bootstrap hooks for deps, we put them in pyproject.toml
     pymelos_yaml = path / "pymelos.yaml"
     pymelos_yaml.write_text(
-        PYMELOS_YAML_TEMPLATE.format(name=name, scripts=all_scripts), encoding="utf-8"
+        PYMELOS_YAML_TEMPLATE.format(name=name, scripts=scripts_content, bootstrap_hooks="    []"),
+        encoding="utf-8",
     )
 
-    # Prepare pyproject.toml content
-    type_checker_config = ""
-    if type_checker == "ty":
-        type_checker_config = '[tool.ty.environment]\npython-version = "3.10"'
+    # 2. Create pyproject.toml
+    type_checker_config = TOOL_CONFIGS.get(type_checker, "") if type_checker == "ty" else ""
 
     tools_config = ""
     if use_pytest:
-        tools_config += """[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-addopts = ["-ra", "--strict-markers"]
-"""
+        tools_config += TOOL_CONFIGS["pytest"] + "\n"
     if use_ruff:
-        tools_config += """
-[tool.ruff]
-line-length = 100
-target-version = "py310"
-"""
+        tools_config += TOOL_CONFIGS["ruff"] + "\n"
 
-    # Create pyproject.toml
     pyproject = path / "pyproject.toml"
     if not pyproject.exists():
         content = PYPROJECT_TOML_TEMPLATE.format(
@@ -193,24 +106,17 @@ target-version = "py310"
             type_checker_config=type_checker_config,
             tools_config=tools_config,
         )
-        # Add deps manually to avoid complex f-string escaping
-        deps = get_dev_dependencies(use_pytest, use_ruff, type_checker)
-        if deps:
-            dep_str = '",\n    "'.join(deps)
-            content += f'\n[dependency-groups]\ndev = [\n    "{dep_str}",\n]\n'
-
         pyproject.write_text(content, encoding="utf-8")
 
-    # Create directories
+    # 3. Create directories
     (path / "packages").mkdir(exist_ok=True)
-    (path / "app").mkdir(exist_ok=True)  # Create app/ folder as per new default
+    (path / "app").mkdir(exist_ok=True)
 
-    # Create README
+    # 4. Create README & gitignore
     readme = path / "README.md"
     if not readme.exists():
         readme.write_text(f"# {name}\n\n{description}\n", encoding="utf-8")
 
-    # Create .gitignore
     gitignore = path / ".gitignore"
     if not gitignore.exists():
         gitignore.write_text(
@@ -242,15 +148,32 @@ dmypy.json
             encoding="utf-8",
         )
 
-    # Initialize git
+    # 5. Initialize git
     if not (path / ".git").exists():
         with contextlib.suppress(subprocess.CalledProcessError, FileNotFoundError):
             subprocess.run(["git", "init"], cwd=path, capture_output=True, check=True)
+
+    # 6. Install dependencies via uv add
+    dev_deps = []
+    if use_pytest:
+        dev_deps.extend(["pytest", "pytest-cov"])
+    if use_ruff:
+        dev_deps.append("ruff")
+
+    if type_checker == "pyright":
+        dev_deps.append("pyright")
+    elif type_checker == "mypy":
+        dev_deps.append("mypy")
+    # ty not added to dev-deps automatically
+
+    if dev_deps:
+        run_uv_add(path, dev_deps, dev=True)
 
 
 def init_interactive(cwd: Path, default_name: str | None) -> dict[str, Any]:
     """Run interactive initialization wizard."""
     import questionary
+
     from pymelos.interactive import get_style
 
     style = get_style()
@@ -317,16 +240,6 @@ def handle_init(cwd: Path, name: str | None, console: Console, error_console: Co
         raise typer.Exit(1)
 
     try:
-        # Check if running interactively (implied if name not provided, or forced?)
-        # For init, we usually want interactive unless flags provided?
-        # But to keep backward compat, if name IS provided, maybe skip?
-        # The user wants "interactive plan for init".
-        # Let's assume interactive is default if TTY attached and no name?
-        # Or always run interactive if no args?
-
-        # We'll use interactive if no name is provided OR explicit flag (not implemented yet).
-        # Since 'name' is optional in CLI, if it's missing, let's go interactive.
-
         options = {
             "name": name,
             "description": "Python monorepo",
@@ -343,9 +256,9 @@ def handle_init(cwd: Path, name: str | None, console: Console, error_console: Co
             except (ImportError, ModuleNotFoundError):
                 # Fallback if interactive libs missing (unlikely given deps)
                 pass
-            except Exception:
+            except Exception as e:
                 # Cancelled or error
-                raise typer.Exit(1)
+                raise typer.Exit(1) from e
 
         init_workspace(
             cwd,
