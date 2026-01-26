@@ -76,7 +76,7 @@ def test_select_execution_options():
 
 
 def test_select_git_reference():
-    refs = [("main (default)", "main"), ("v1.0 (tag)", "v1.0")]
+    refs: list[tuple[str, str]] = [("main (default)", "main"), ("v1.0 (tag)", "v1.0")]
     with patch("questionary.select") as mock_select:
         mock_ask = mock_select.return_value.ask
         mock_ask.return_value = "main"
@@ -90,7 +90,7 @@ def test_select_git_reference():
 
 
 def test_select_git_reference_manual():
-    refs = [("main (default)", "main")]
+    refs: list[tuple[str, str]] = [("main (default)", "main")]
     with patch("questionary.select") as mock_select, patch("questionary.text") as mock_text:
         # First select "manual"
         mock_select.return_value.ask.return_value = "manual"

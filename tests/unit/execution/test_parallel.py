@@ -1,7 +1,6 @@
 """Test parallel execution."""
 
-import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -90,7 +89,7 @@ async def test_execute_output_handler(mock_packages):
 
     with patch("pymelos.execution.parallel.run_in_package") as mock_run:
         # Mock run_in_package calling callbacks
-        async def side_effect(pkg, cmd, on_stdout, on_stderr, **kwargs):
+        async def side_effect(pkg, _cmd, on_stdout, on_stderr, **_kwargs):
             if on_stdout:
                 on_stdout("stdout line")
             if on_stderr:

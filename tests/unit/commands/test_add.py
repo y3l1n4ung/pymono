@@ -1,6 +1,5 @@
 """Test add command."""
 
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -27,7 +26,7 @@ async def test_add_project_defaults(mock_context, tmp_path):
 
     with patch("pymelos.commands.add.run_command", new_callable=AsyncMock) as mock_run:
 
-        async def create_files(*args, **kwargs):
+        async def create_files(*_args, **_kwargs):
             target_path.mkdir(parents=True, exist_ok=True)
             (target_path / "pyproject.toml").write_text("")
             return (0, "output", "", 100)
@@ -65,7 +64,7 @@ async def test_add_project_app_custom_folder(mock_context, tmp_path):
 
     with patch("pymelos.commands.add.run_command", new_callable=AsyncMock) as mock_run:
 
-        async def create_files(*args, **kwargs):
+        async def create_files(*_args, **_kwargs):
             target_path.mkdir(parents=True, exist_ok=True)
             (target_path / "pyproject.toml").write_text("")
             return (0, "output", "", 100)

@@ -278,7 +278,8 @@ def handle_init(cwd: Path, name: str | None, console: Console, error_console: Co
 
         if options["type_checker"] == "ty":
             console.print(
-                "\n[blue]Note:[/blue] You selected 'ty'. Ensure you have it installed (e.g. via 'uv tool install ty')."
+                "\n[blue]Note:[/blue] You selected 'ty'. "
+                "Ensure you have it installed (e.g. via 'uv tool install ty')."
             )
 
     except PyMelosError as e:

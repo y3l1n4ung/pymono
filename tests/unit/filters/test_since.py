@@ -1,6 +1,7 @@
 """Test git since filtering."""
 
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from pymelos.filters.since import filter_by_since, get_changed_packages
@@ -64,7 +65,7 @@ def test_filter_by_since():
     pkg_a.name = "pkg-a"
     pkg_b = MagicMock(spec=Package)
     pkg_b.name = "pkg-b"
-    packages = [pkg_a, pkg_b]
+    packages = cast("list[Package]", [pkg_a, pkg_b])
 
     with patch("pymelos.filters.since.get_changed_packages") as mock_changed:
         mock_changed.return_value = [pkg_b]

@@ -2,10 +2,8 @@
 
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
-import yaml
 
 from pymelos.commands.version import VersionCommand, VersionOptions
 from pymelos.workspace.workspace import Workspace

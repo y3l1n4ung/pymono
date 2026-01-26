@@ -25,7 +25,7 @@ def test_init_command_invocation():
 
 def test_bootstrap_command_invocation():
     with (
-        patch("pymelos.cli.app.get_workspace") as mock_get_ws,
+        patch("pymelos.cli.app.get_workspace"),
         patch("pymelos.commands.handle_bootstrap", new_callable=AsyncMock) as mock_handle,
     ):
         result = runner.invoke(app, ["bootstrap", "--clean"])
@@ -36,7 +36,7 @@ def test_bootstrap_command_invocation():
 
 def test_add_command_invocation():
     with (
-        patch("pymelos.cli.app.get_workspace") as mock_get_ws,
+        patch("pymelos.cli.app.get_workspace"),
         patch("pymelos.commands.handle_add_project", new_callable=AsyncMock) as mock_handle,
     ):
         result = runner.invoke(app, ["add", "pkg-a", "--project-type", "app"])
@@ -62,7 +62,7 @@ def test_run_command_invocation():
 
 def test_exec_command_invocation():
     with (
-        patch("pymelos.cli.app.get_workspace") as mock_get_ws,
+        patch("pymelos.cli.app.get_workspace"),
         patch("pymelos.commands.handle_exec_command", new_callable=AsyncMock) as mock_handle,
     ):
         result = runner.invoke(app, ["exec", "ls -la", "--scope", "pkg-*"])
@@ -73,7 +73,7 @@ def test_exec_command_invocation():
 
 def test_list_command_invocation():
     with (
-        patch("pymelos.cli.app.get_workspace") as mock_get_ws,
+        patch("pymelos.cli.app.get_workspace"),
         patch("pymelos.cli.app.handle_list_command") as mock_handle,
     ):
         result = runner.invoke(app, ["list", "--json"])
@@ -84,7 +84,7 @@ def test_list_command_invocation():
 
 def test_clean_command_invocation():
     with (
-        patch("pymelos.cli.app.get_workspace") as mock_get_ws,
+        patch("pymelos.cli.app.get_workspace"),
         patch("pymelos.commands.handle_clean_command", new_callable=AsyncMock) as mock_handle,
     ):
         result = runner.invoke(app, ["clean", "--dry-run"])
@@ -95,7 +95,7 @@ def test_clean_command_invocation():
 
 def test_export_command_invocation():
     with (
-        patch("pymelos.cli.app.get_workspace") as mock_get_ws,
+        patch("pymelos.cli.app.get_workspace"),
         patch(
             "pymelos.commands.export.handle_export_command", new_callable=AsyncMock
         ) as mock_handle,
@@ -144,9 +144,9 @@ def test_changed_command_interactive_trigger():
         patch("pymelos.git.repo.get_recent_refs") as mock_get_refs,
         patch("pymelos.interactive.select_git_reference") as mock_select_ref,
         patch("pymelos.commands.changed.get_changed_packages") as mock_get_packages,
-        # Patching select_package_for_review ensures we don't hit IO if review_changes_interactive runs
+        # Patching select_package_for_review ensures we don't hit IO if review runs
         patch("pymelos.interactive.select_package_for_review") as mock_select_pkg,
-        patch("pymelos.cli.app.console") as mock_console,
+        patch("pymelos.cli.app.console"),
     ):
         mock_ws = MagicMock()
         from pathlib import Path

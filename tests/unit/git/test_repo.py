@@ -3,8 +3,6 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from pymelos.git.repo import (
     get_current_branch,
     get_current_commit,
