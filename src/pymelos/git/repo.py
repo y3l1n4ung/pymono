@@ -19,15 +19,13 @@ def is_git_repo(path: Path) -> bool:
         True if path is inside a git repository.
     """
     try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--git-dir"],
+        result = run_git_command(
+            ["rev-parse", "--git-dir"],
             cwd=path,
-            capture_output=True,
-            text=True,
             check=False,
         )
         return result.returncode == 0
-    except FileNotFoundError:
+    except (FileNotFoundError, GitError):
         return False
 
 
@@ -44,19 +42,19 @@ def get_repo_root(path: Path) -> Path:
         GitError: If not inside a git repository.
     """
     try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+        result = run_git_command(
+            ["rev-parse", "--show-toplevel"],
             cwd=path,
-            capture_output=True,
-            text=True,
             check=True,
         )
         return Path(result.stdout.strip())
-    except subprocess.CalledProcessError as e:
-        raise GitError(
-            "Not inside a git repository",
-            command="git rev-parse --show-toplevel",
-        ) from e
+    except GitError as e:
+        if "Not inside a git repository" in str(e) or "not a git repository" in str(e):
+            raise GitError(
+                "Not inside a git repository",
+                command="git rev-parse --show-toplevel",
+            ) from e
+        raise
     except FileNotFoundError as e:
         raise GitError("Git is not installed") from e
 
