@@ -205,11 +205,6 @@ def run_cmd(
                 console.print("Operation cancelled.")
                 raise typer.Exit()
 
-            script = select_script(scripts)
-            if not script:
-                console.print("Operation cancelled.")
-                raise typer.Exit()
-
         # 2. Select Scope (if not fully specified)
         if not scope and not since:
             options = select_execution_options()
