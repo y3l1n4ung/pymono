@@ -20,8 +20,8 @@ def _ensure_questionary_available() -> None:
     """Raise a user-friendly error when interactive dependency is missing."""
     if not _QUESTIONARY_AVAILABLE:
         raise RuntimeError(
-            "Interactive UI requires the 'questionary' package. \
-            Install it with: pip install 'pymelos[interactive]' or 'pip install questionary'"
+            "Interactive UI requires the 'questionary' package. "
+            "Install it with: pip install 'pymelos[interactive]' or 'pip install questionary'"
         )
 
 
