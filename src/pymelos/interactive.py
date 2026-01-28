@@ -17,7 +17,12 @@ except Exception:  # ImportError or any issue importing questionary
 from pymelos.workspace.package import Package
 
 def _ensure_questionary_available() -> None:
-    """Raise a user-friendly error when interactive dependency is missing."""
+    """
+    Ensure the interactive dependency `questionary` is available; raise a RuntimeError with installation instructions if it is missing.
+    
+    Raises:
+        RuntimeError: If `questionary` is not installed. The error message includes pip install instructions.
+    """
     if not _QUESTIONARY_AVAILABLE:
         raise RuntimeError(
             "Interactive UI requires the 'questionary' package. "
@@ -25,7 +30,14 @@ def _ensure_questionary_available() -> None:
         )
 
 def get_style() -> Style:
-    """Get the custom style for interactive prompts."""
+    """
+    Provide the Style used for interactive prompts.
+    
+    Returns:
+        style (Style): A Style configured with color and attribute mappings for prompt elements
+        (`qmark`, `question`, `answer`, `pointer`, `highlighted`, `selected`, `separator`,
+        `instruction`).
+    """
     _ensure_questionary_available()
 
     return Style(
@@ -42,10 +54,17 @@ def get_style() -> Style:
     )
 
 def _safe_ask(fn, *args, default=None, **kwargs):
-    """Call a questionary function and normalize cancelled/KeyboardInterrupt.
-
+    """
+    Invoke a questionary prompt function and return a normalized result when the prompt is cancelled, interrupted, or fails.
+    
+    Parameters:
+        fn: The questionary function or prompt object factory to call (for example `questionary.select`, `questionary.checkbox`, or `questionary.prompt`).
+        *args: Positional arguments forwarded to `fn`.
+        **kwargs: Keyword arguments forwarded to `fn`.
+        default: Value to return when the user cancels (KeyboardInterrupt), when prompting fails (e.g., non-tty), or when the prompt returns `None`.
+    
     Returns:
-        The value returned by the prompt, or `default` if the user cancelled or interrupted.
+        The prompt's result, or `default` if the prompt was cancelled, interrupted, or raised an exception.
     """
     _ensure_questionary_available()
 
@@ -76,13 +95,14 @@ def _safe_ask(fn, *args, default=None, **kwargs):
     return res if res is not None else default
 
 def select_script(scripts: dict[str, str]) -> str | None:
-    """Interactively select a script to run.
-
-    Args:
-        scripts: Dictionary of script name -> description/command.
-
+    """
+    Present a selectable list of scripts and return the chosen script name.
+    
+    Parameters:
+        scripts (dict[str, str]): Mapping of script name to description or command.
+    
     Returns:
-        Selected script name or None if cancelled.
+        Selected script name (str) if a choice was made, or None if cancelled.
     """
     if not scripts:
         return None
@@ -170,10 +190,11 @@ def select_git_reference(refs: list[tuple[str, str]]) -> str | None:
     return selection
 
 def select_execution_options() -> dict[str, bool | str]:
-    """Select execution options interactively.
-
+    """
+    Prompt the user to choose the execution scope for running tasks.
+    
     Returns:
-        Dictionary of selected options (empty dict if cancelled).
+        dict: Mapping of option names to selected values. Contains the key `"scope"` with value `"all"`, `"changed"`, or `"manual"`. Returns an empty dict if the prompt was cancelled or not available.
     """
     questions = [
         {
