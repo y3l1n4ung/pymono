@@ -3,15 +3,31 @@
 from __future__ import annotations
 
 from typing import Any
+import sys
 
-import questionary
-from questionary import Style
+try:
+    import questionary
+    from questionary import Style
+    _QUESTIONARY_AVAILABLE = True
+except Exception:  # ImportError or any issue importing questionary
+    questionary = None  # type: ignore
+    Style = object  # type: ignore
+    _QUESTIONARY_AVAILABLE = False
 
 from pymelos.workspace.package import Package
 
+def _ensure_questionary_available() -> None:
+    """Raise a user-friendly error when interactive dependency is missing."""
+    if not _QUESTIONARY_AVAILABLE:
+        raise RuntimeError(
+            "Interactive UI requires the 'questionary' package. "
+            "Install it with: pip install 'pymelos[interactive]' or 'pip install questionary'"
+        )
 
 def get_style() -> Style:
     """Get the custom style for interactive prompts."""
+    _ensure_questionary_available()
+
     return Style(
         [
             ("qmark", "fg:#673ab7 bold"),  # Purple question mark
@@ -25,6 +41,39 @@ def get_style() -> Style:
         ]
     )
 
+def _safe_ask(fn, *args, default=None, **kwargs):
+    """Call a questionary function and normalize cancelled/KeyboardInterrupt.
+
+    Returns:
+        The value returned by the prompt, or `default` if the user cancelled or interrupted.
+    """
+    _ensure_questionary_available()
+
+    try:
+        prompt_obj = fn(*args, **kwargs)
+    except KeyboardInterrupt:
+        # User pressed Ctrl-C during prompt creation; treat as cancellation.
+        return default
+    except Exception:
+        # Some questionary functions may raise on non-tty environments; treat as cancellation.
+        return default
+
+    # For questionary.select/checkbox/etc, prompt_obj.ask() performs the actual prompt.
+    # For questionary.prompt(questions) the function itself performs prompting and returns dict or None.
+    try:
+        # If the returned object has an ask method, call it.
+        if hasattr(prompt_obj, "ask"):
+            res = prompt_obj.ask()
+        else:
+            # questionary.prompt returns the result directly
+            res = prompt_obj
+    except KeyboardInterrupt:
+        return default
+    except Exception:
+        return default
+
+    # Normalize None => default
+    return res if res is not None else default
 
 def select_script(scripts: dict[str, str]) -> str | None:
     """Interactively select a script to run.
@@ -46,13 +95,14 @@ def select_script(scripts: dict[str, str]) -> str | None:
         for name, desc in scripts.items()
     ]
 
-    return questionary.select(
+    return _safe_ask(
+        questionary.select,
         "Which script would you like to run?",
         choices=choices,
         style=get_style(),
         use_indicator=True,
-    ).ask()
-
+        default=None,
+    )
 
 def select_packages(packages: list[Package]) -> list[Package]:
     """Interactively select packages.
@@ -61,7 +111,7 @@ def select_packages(packages: list[Package]) -> list[Package]:
         packages: List of available packages.
 
     Returns:
-        List of selected packages.
+        List of selected packages (empty list if cancelled or none selected).
     """
     if not packages:
         return []
@@ -78,16 +128,17 @@ def select_packages(packages: list[Package]) -> list[Package]:
         for p in sorted_pkgs
     ]
 
-    selected = questionary.checkbox(
+    selected = _safe_ask(
+        questionary.checkbox,
         "Select packages:",
         choices=choices,
         validate=lambda _: True,  # Allow empty selection
         style=get_style(),
         instruction="(Space to select, Enter to confirm)",
-    ).ask()
+        default=[],
+    )
 
     return selected or []
-
 
 def select_git_reference(refs: list[tuple[str, str]]) -> str | None:
     """Interactively select a git reference.
@@ -104,24 +155,25 @@ def select_git_reference(refs: list[tuple[str, str]]) -> str | None:
     choices = [questionary.Choice(title=label, value=val) for label, val in refs]
     choices.append(questionary.Choice(title="Enter manually...", value="manual"))
 
-    selection = questionary.select(
+    selection = _safe_ask(
+        questionary.select,
         "Select a base git reference:",
         choices=choices,
         style=get_style(),
         use_indicator=True,
-    ).ask()
+        default=None,
+    )
 
     if selection == "manual":
-        return questionary.text("Enter git reference:", style=get_style()).ask()
+        return _safe_ask(questionary.text, "Enter git reference:", style=get_style(), default=None)
 
     return selection
-
 
 def select_execution_options() -> dict[str, bool | str]:
     """Select execution options interactively.
 
     Returns:
-        Dictionary of selected options.
+        Dictionary of selected options (empty dict if cancelled).
     """
     questions = [
         {
@@ -136,8 +188,8 @@ def select_execution_options() -> dict[str, bool | str]:
         },
     ]
 
-    return questionary.prompt(questions, style=get_style())
-
+    result = _safe_ask(questionary.prompt, questions, style=get_style(), default={})
+    return result or {}
 
 def select_package_for_review(packages: list[Any]) -> str | None:
     """Interactively select a changed package to review.
@@ -160,13 +212,14 @@ def select_package_for_review(packages: list[Any]) -> str | None:
     ]
     choices.append(questionary.Choice(title="Exit", value=None))
 
-    return questionary.select(
+    return _safe_ask(
+        questionary.select,
         "Select a package to review changes:",
         choices=choices,
         style=get_style(),
         use_indicator=True,
-    ).ask()
-
+        default=None,
+    )
 
 def select_file_for_review(files: list[str]) -> str | None:
     """Interactively select a file to view diff.
@@ -183,11 +236,13 @@ def select_file_for_review(files: list[str]) -> str | None:
     choices = [questionary.Choice(title=f, value=f) for f in files]
     choices.append(questionary.Choice(title="< Back to packages", value="__BACK__"))
 
-    selection = questionary.select(
+    selection = _safe_ask(
+        questionary.select,
         "Select a file to view diff:",
         choices=choices,
         style=get_style(),
         use_indicator=True,
-    ).ask()
+        default="__BACK__",
+    )
 
     return None if selection == "__BACK__" else selection
