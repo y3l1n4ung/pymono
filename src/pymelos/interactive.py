@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from typing import Any
-import sys
 
 try:
     import questionary
@@ -16,13 +15,15 @@ except Exception:  # ImportError or any issue importing questionary
 
 from pymelos.workspace.package import Package
 
+
 def _ensure_questionary_available() -> None:
     """Raise a user-friendly error when interactive dependency is missing."""
     if not _QUESTIONARY_AVAILABLE:
         raise RuntimeError(
-            "Interactive UI requires the 'questionary' package. "
-            "Install it with: pip install 'pymelos[interactive]' or 'pip install questionary'"
+            "Interactive UI requires the 'questionary' package. \
+            Install it with: pip install 'pymelos[interactive]' or 'pip install questionary'"
         )
+
 
 def get_style() -> Style:
     """Get the custom style for interactive prompts."""
@@ -41,6 +42,7 @@ def get_style() -> Style:
         ]
     )
 
+
 def _safe_ask(fn, *args, default=None, **kwargs):
     """Call a questionary function and normalize cancelled/KeyboardInterrupt.
 
@@ -52,28 +54,22 @@ def _safe_ask(fn, *args, default=None, **kwargs):
     try:
         prompt_obj = fn(*args, **kwargs)
     except KeyboardInterrupt:
-        # User pressed Ctrl-C during prompt creation; treat as cancellation.
         return default
     except Exception:
-        # Some questionary functions may raise on non-tty environments; treat as cancellation.
         return default
 
-    # For questionary.select/checkbox/etc, prompt_obj.ask() performs the actual prompt.
-    # For questionary.prompt(questions) the function itself performs prompting and returns dict or None.
     try:
-        # If the returned object has an ask method, call it.
         if hasattr(prompt_obj, "ask"):
             res = prompt_obj.ask()
         else:
-            # questionary.prompt returns the result directly
             res = prompt_obj
     except KeyboardInterrupt:
         return default
     except Exception:
         return default
 
-    # Normalize None => default
     return res if res is not None else default
+
 
 def select_script(scripts: dict[str, str]) -> str | None:
     """Interactively select a script to run.
@@ -104,6 +100,7 @@ def select_script(scripts: dict[str, str]) -> str | None:
         default=None,
     )
 
+
 def select_packages(packages: list[Package]) -> list[Package]:
     """Interactively select packages.
 
@@ -116,7 +113,6 @@ def select_packages(packages: list[Package]) -> list[Package]:
     if not packages:
         return []
 
-    # Sort packages by name
     sorted_pkgs = sorted(packages, key=lambda p: p.name)
 
     choices = [
@@ -132,13 +128,14 @@ def select_packages(packages: list[Package]) -> list[Package]:
         questionary.checkbox,
         "Select packages:",
         choices=choices,
-        validate=lambda _: True,  # Allow empty selection
+        validate=lambda _: True,
         style=get_style(),
         instruction="(Space to select, Enter to confirm)",
         default=[],
     )
 
     return selected or []
+
 
 def select_git_reference(refs: list[tuple[str, str]]) -> str | None:
     """Interactively select a git reference.
@@ -169,6 +166,7 @@ def select_git_reference(refs: list[tuple[str, str]]) -> str | None:
 
     return selection
 
+
 def select_execution_options() -> dict[str, bool | str]:
     """Select execution options interactively.
 
@@ -190,6 +188,7 @@ def select_execution_options() -> dict[str, bool | str]:
 
     result = _safe_ask(questionary.prompt, questions, style=get_style(), default={})
     return result or {}
+
 
 def select_package_for_review(packages: list[Any]) -> str | None:
     """Interactively select a changed package to review.
@@ -221,6 +220,7 @@ def select_package_for_review(packages: list[Any]) -> str | None:
         default=None,
     )
 
+
 def select_file_for_review(files: list[str]) -> str | None:
     """Interactively select a file to view diff.
 
@@ -246,3 +246,4 @@ def select_file_for_review(files: list[str]) -> str | None:
     )
 
     return None if selection == "__BACK__" else selection
+
