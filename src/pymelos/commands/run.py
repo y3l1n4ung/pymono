@@ -189,13 +189,15 @@ async def handle_run_script(
     def output_handler(pkg_name: str, line: str, is_stderr: bool) -> None:
         prefix = f"[{pkg_name}] "
         style = "red" if is_stderr else "dim"
-        # Using print directly might be safer for interleaved output than console.print?
-        # But console.print handles styles.
-        # Ensure thread safety if needed, though we are in async loop
         if is_stderr:
             error_console.print(f"[{style}]{escape(prefix)}[/{style}]{escape(line)}")
         else:
             console.print(f"[{style}]{escape(prefix)}[/{style}]{escape(line)}")
+
+    # Validate script_name is not None
+    if script_name is None:
+        error_console.print("[red]Error: Script name cannot be None[/red]")
+        raise typer.Exit(1)
 
     try:
         result = await run_script(

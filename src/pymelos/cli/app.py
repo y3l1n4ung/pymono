@@ -74,7 +74,8 @@ def init(
     """Initialize a new pymelos workspace."""
     from pymelos.cli.commands.init import handle_init
 
-    handle_init(path or Path.cwd(), name, console, error_console)
+    init_path = path if path is not None else Path.cwd()
+    handle_init(init_path, name, console, error_console)
 
 
 @app.command()
@@ -222,6 +223,11 @@ def run_cmd(
                 scope = ",".join(p.name for p in selected_pkgs)
 
     ignore_list = parse_comma_list(ignore)
+
+    # Validate script is provided
+    if not script:
+        error_console.print("[red]Error: Script name is required[/red]")
+        raise typer.Exit(1)
 
     asyncio.run(
         handle_run_script(

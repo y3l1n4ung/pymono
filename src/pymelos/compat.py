@@ -7,7 +7,7 @@ import sys
 # tomllib is only available in Python 3.11+
 # Use tomli for Python 3.10
 if sys.version_info >= (3, 11):
-    import tomllib  # type: ignore[import-not-found]
+    import tomllib
 else:
     import tomli as tomllib  # type: ignore[import-not-found]
 

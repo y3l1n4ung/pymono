@@ -120,4 +120,4 @@ __all__ = [
     "AddProjectResult",
     "add_project",
     "handle_add_project",
-]  # type: ignore
+]

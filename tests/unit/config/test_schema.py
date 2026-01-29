@@ -183,7 +183,7 @@ class TestPyMelosConfig:
     def test_name_required(self) -> None:
         """Name is required."""
         with pytest.raises(ValidationError):
-            PyMelosConfig(packages=["packages/*"])  # type: ignore[call-arg]
+            PyMelosConfig(packages=["packages/*"])
 
     def test_script_normalization_string(self) -> None:
         """String scripts are converted to ScriptConfig."""
